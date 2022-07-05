@@ -3,11 +3,7 @@
 #include <vector>
 #include <array>
 
-using std::array;
-using std::string;
-using std::vector;
-
-enum class TokenType {
+enum class TokenType { // Enumeration of all token types
     L_PAREN,
     R_PAREN,
     L_SQ_BRACKET,
@@ -39,46 +35,50 @@ enum class TokenType {
     INT_LIT,
     ID,
     WHSPACE,
+    TAB,
+    NEWLINE,
     OUTPUT,
     EOFILE,
     UNKNOWN
 };
 
-class TokenDescriptor {
+class TokenDescriptor { // Connects a lexeme (string) to a token type
 public:
     TokenDescriptor();
-    TokenDescriptor(const string& tokStr, TokenType tokType);
-    string getLexeme();
-    int getLen();
+    TokenDescriptor(const std::string&, TokenType);
+    std::string getLexeme();
+    size_t getLen();
     TokenType getType();
 protected:
-    string lexeme;
-    TokenType type;
+    std::string lexeme = "";
+    TokenType type = TokenType::UNKNOWN;
 
 };
 
-class Token : public TokenDescriptor {
+class Token : public TokenDescriptor { // Used for actual tokens found in the input string
 public:
     Token() {}
-    Token(const string& tokStr, TokenType tokType, int tokPos);
+    Token(const std::string&, TokenType, int);
     int getPos();
 private:
-    int pos = 0;
+    int pos = 0; // The position of the token in the input string
 };
 
 class Lexer {
 public:
     Lexer();
-    Lexer(const string& str);
-    void setInput(const string& input);
+    Lexer(const std::string&);
+    void setInput(const std::string&);
     Token getCurrToken();
+    Token lookForw(int);
     void scanToken();
     void lexInput();
 private:
-    vector<Token> tokenList;
+    std::vector<Token> tokenList;
     int tokenListIndex = 0;
-    string str;
-    vector<TokenDescriptor> fixedTokenList = {
+    std::string originalStr = "";
+    std::string str = "";
+    std::vector<TokenDescriptor> fixedTokenList = { // A list of keywords, relating lexeme to token type
             TokenDescriptor("+", TokenType::PLUS),
             TokenDescriptor("-", TokenType::MINUS),
             TokenDescriptor("*", TokenType::STAR),
@@ -97,8 +97,11 @@ private:
             TokenDescriptor(">=", TokenType::GRE_EQ),
             TokenDescriptor("<", TokenType::LESS),
             TokenDescriptor(">", TokenType::GRE),
+            TokenDescriptor("\t", TokenType::TAB),
+            TokenDescriptor("\n", TokenType::NEWLINE),
             TokenDescriptor("output", TokenType::OUTPUT),
-
     };
+    std::string preprocessStr(const std::string&);
+    int posToLine(int);
 };
 

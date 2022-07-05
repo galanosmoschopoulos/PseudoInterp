@@ -3,17 +3,9 @@
 #include "operators.h"
 #include "lexer.h"
 #include "AST.h"
-#include <string>
 #include <map>
-#include <vector>
-#include <stdexcept>
-
-class CodeBlock;
-class ASTNode;
-class Parser;
 
 #define MAX_GROUPS 15
-#define MAX_OPS_PER_GROUP 20
 
 using OT = OperatorType;
 using TT = TokenType;
@@ -21,15 +13,13 @@ using TT = TokenType;
 class Parser {
 public:
 	Parser();
-	ASTNode* getAST(const std::string&);
+	CodeBlock* getAST(const std::string&);
 
 private:
 	Lexer lexer;
-
+	
+	// Each precedence group consists of a map linking tokens to their corresponding operators, and a pointer to a function to parse those operators
 	struct precedenceGroup {
-	public:
-		/*TokenType tokenTypes[MAX_OPS_PER_GROUP];
-		OperatorType opTypes[MAX_OPS_PER_GROUP];*/
 		std::map<TokenType, OperatorType> findOp;
 		ASTNode* (Parser::* parserFunc)(precedenceGroup*);
 	};
@@ -65,9 +55,12 @@ private:
 		{{}, &Parser::parsePrimary}
 	};
 
+	CodeBlock* parseBlock();
 	ASTNode* parseUnary(precedenceGroup* currGroup);
 	ASTNode* parseBinLeft(precedenceGroup* currGroup);
 	ASTNode* parseBinRight(precedenceGroup* currGroup);
 	ASTNode* parsePrimary(precedenceGroup* currGroup);
+
+	int blockLevel = -1; // Each block increases this by one. So if the main block (which contains everything) is level 0, then blockLevel is initially -1.
 };
 

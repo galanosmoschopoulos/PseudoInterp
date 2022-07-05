@@ -7,12 +7,12 @@
 ASTNode::ASTNode() = default;
 ASTNode::~ASTNode() = default;
 void ASTNode::setForceRval(bool isIt) { forceRval = isIt; }
-Object* ASTNode::eval(Scope*, bool lSide) { return nullptr; }
-void ASTNode::cleanTmps(std::initializer_list<Object*> tmpList)
+Object* ASTNode::eval(Scope*, bool) { return nullptr; }
+void ASTNode::cleanTmps(std::initializer_list<Object*> tmpList) // Cleans temporary objects created in the evaluation of an expression (i.e. in a = 5 + 3*2, the object with value 3*2 is temporary)
 {
 	for(const Object* oPtr : tmpList)
 	{
-		if(!oPtr->isLval()) // If they're not lValues, kill them
+		if(!oPtr->isLval()) // If they're not lValues (i.e. variables in the scope), delete them
 		{
 			delete oPtr;
 		}
@@ -27,7 +27,7 @@ void BinaryNode::setLeft(ASTNode *l) { left = l; }
 void BinaryNode::setRight(ASTNode *r) { right = r; }
 Object* BinaryNode::eval(Scope *scope, bool lSide)
 {
-	Object* oLeft = left->eval(scope, (opType == OperatorType::ASSIGNMENT)?(true):(false));
+	Object* oLeft = left->eval(scope, (opType == OperatorType::ASSIGNMENT)?(true):(false)); // If we have the assignment operator, the left node should be passed with lSide=true
 	Object* oRight = right->eval(scope, lSide);
 	Object* result = nullptr;
 	switch (opType)
@@ -81,11 +81,11 @@ Object* BinaryNode::assign(Object* leftObj, const Object* rightObj)
 CodeBlock::CodeBlock() = default;
 void CodeBlock::eval(Scope* scope)
 {
-	scope->incLevel();
-	for (auto st : statementVec) {
+	scope->incLevel(); // Increase scope level
+	for (auto st : statementVec) { // Execute all statements
 		st->eval(scope);
 	}
-	scope->decrLevel();
+	scope->decrLevel(); // Decrease scope level
 }
 void CodeBlock::addStatement(ASTNode* statementRoot) {
 	statementVec.push_back(statementRoot);
@@ -93,18 +93,18 @@ void CodeBlock::addStatement(ASTNode* statementRoot) {
 
 
 LiteralNode::LiteralNode() = default;
-Object* LiteralNode::eval(Scope* scope, bool lSide) { return literal; }
+Object* LiteralNode::eval(Scope*, bool) { return literal; }
 
 
 IDNode::IDNode() = default;
-IDNode::IDNode(const string &id) : id(id) {}
+IDNode::IDNode(const std::string &id) : id(id) {}
 Object* IDNode::eval(Scope *scope, bool lSide) 
 {
 	Object* obj = nullptr;
-	if (!scope->checkObj(id) && lSide)
+	if (!scope->checkObj(id) && lSide) // If object with set id doesn't exist, and is exactly in the left side (lSide) of an equality operator, create a new object with such id
 		scope->addObj(Object(), id);
 	obj = scope->getObj(id);
-	if (forceRval)
+	if (forceRval) // If it is forced to be an rval
 		obj->setLval(false);
 	return obj;
 }
@@ -112,7 +112,7 @@ Object* IDNode::eval(Scope *scope, bool lSide)
 
 UnaryNode::UnaryNode() = default;
 UnaryNode::UnaryNode(ASTNode* operand, OperatorType opType) : operand(operand), opType(opType) {}
-Object* UnaryNode::eval(Scope* scope, bool lSide)
+Object* UnaryNode::eval(Scope* scope, bool)
 {
 	Object* obj = operand->eval(scope);
 	Object* result = nullptr;
@@ -121,7 +121,7 @@ Object* UnaryNode::eval(Scope* scope, bool lSide)
 		result = outputOp(obj);
 		break;
 	}
-	cleanTmps({obj});
+	cleanTmps({obj}); // Clean tmp object
 	return result;
 }
 Object* UnaryNode::outputOp(Object* obj)

@@ -5,14 +5,15 @@
 #include "parser.h"
 #include "AST.h"
 
-
 int main()
 {
 	try {
+		std::string str = "a  =   5		  \n	 	 \noutput  a	   \n\n";
+
 		Scope globalScope;
 		Parser parser;
 
-		parser.getAST("num = 1")->eval(&globalScope);
+		parser.getAST(str)->eval(&globalScope);
 	}
 	catch (std::runtime_error &re)
 	{
