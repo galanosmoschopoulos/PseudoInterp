@@ -117,6 +117,7 @@ void Object::printTypeTrace() const
 void Object::setVal(auto val)
 {
 	data = val;
+	int x;
 }
 bool Object::isLval() const
 {
@@ -142,12 +143,177 @@ std::string Object::getStr() const
 	}
 	return std::get<std::string>(data);
 }
-Object Object::operator=(const Object& obj2) {
+template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
+template<class... Ts> overload(Ts...)->overload<Ts...>;
+Object& Object::operator=(const Object& obj2) {
+	if (this == &obj2)
+		return *this;
 	this->currentType = obj2.currentType;
 	this->data = obj2.data;
-	return obj2;
+	return *this;
 }
-
+Object& Object::operator+=(Object& rhs) {
+	std::visit(overload{
+		[](int& left ,int& right) {left += right; },
+		[](int& left, std::string& right) {std::to_string(left) += right; },
+		[](std::string& left, int& right) {left += std::to_string(right); },
+		[](std::string& left, std::string& right) {left += right; },
+		[](auto&, auto&) {throw std::runtime_error("+ operator: incompatible operand types"); }
+		}, this->data, rhs.data);
+	return *this;
+}
+Object operator+(Object lhs, Object& rhs) {
+	lhs += rhs;
+	lhs.setLval(false);
+	return lhs;
+}
+Object& Object::operator-=(Object& rhs) {
+	std::visit(overload{
+		[](int& left ,int& right) {left -= right; },
+		[](auto&, auto&) {throw std::runtime_error("- operator: incompatible operand types"); }
+		}, this->data, rhs.data);
+	return *this;
+}
+Object operator-(Object lhs, Object& rhs) {
+	lhs -= rhs;
+	lhs.setLval(false);
+	return lhs;
+}
+Object& Object::operator*=(Object& rhs) {
+	std::visit(overload{
+		[](int& left ,int& right) {left *= right; },
+		[](auto&, auto&) {throw std::runtime_error("* operator: incompatible operand types"); }
+		}, this->data, rhs.data);
+	return *this;
+}
+Object operator*(Object lhs, Object& rhs) {
+	lhs *= rhs;
+	lhs.setLval(false);
+	return lhs;
+}
+Object& Object::operator/=(Object& rhs) {
+	std::visit(overload{
+		[](int& left ,int& right) {left /= right; },
+		[](auto&, auto&) {throw std::runtime_error("/ operator: incompatible operand types"); }
+		}, this->data, rhs.data);
+	return *this;
+}
+Object operator/(Object lhs, Object& rhs) {
+	lhs /= rhs;
+	lhs.setLval(false);
+	return lhs;
+}
+Object& Object::operator%=(Object& rhs) {
+	std::visit(overload{
+		[](int& left ,int& right) {left %= right; },
+		[](auto&, auto&) {throw std::runtime_error("% operator: incompatible operand types"); }
+		}, this->data, rhs.data);
+	return *this;
+}
+Object operator%(Object lhs, Object& rhs) {
+	lhs %= rhs;
+	lhs.setLval(false);
+	return lhs;
+}
+Object& Object::operator++() {
+	std::visit(overload{
+		[](int& x) {++x; },
+		[](auto&) {throw std::runtime_error("++ operator: incompatible operand types"); }
+		}, this->data);
+	return *this;
+}
+Object& Object::operator--() {
+	std::visit(overload{
+		[](int& x) {--x; },
+		[](auto&) {throw std::runtime_error("-- operator: incompatible operand types"); }
+		}, this->data);
+	return *this;
+}
+Object& Object::operator++(int) {
+	Object old = *this;
+	operator++();
+	old.setLval(false);
+	return old;
+}
+Object& Object::operator--(int) {
+	Object old = *this;
+	operator--();
+	return old;
+}
+Object Object::operator-() {
+	Object tmp = *this;
+	std::visit(overload{
+		[](int& x) {x *= -1; },
+		[](auto&) {throw std::runtime_error("unary - operator: incompatible operand types"); }
+		}, tmp.data);
+	tmp.setLval(false);
+	return tmp;
+}
+Object Object::operator+() {
+	Object tmp = *this;
+	std::visit(overload{
+		[](int& x) {x *= +1; },
+		[](auto&) {throw std::runtime_error("unary + operator: incompatible operand types"); }
+		}, tmp.data);
+	tmp.setLval(false);
+	return tmp;
+}
+Object operator<(Object& lhs, Object& rhs) {
+	int result = 0;
+	std::visit(overload{
+		[&result](int& left, int& right) {result = left<right; },
+		[&result](std::string& left, std::string& right) {result = left<right; },
+		[](auto&, auto &) {throw std::runtime_error("comparison operator: incompatible operand types"); }
+		}, lhs.data, rhs.data);
+	return Object(result);
+}
+Object operator>(Object& lhs, Object& rhs) {
+	return rhs < lhs;
+}
+Object operator<=(Object& lhs, Object& rhs) {
+	return !(lhs > rhs);
+}
+Object operator>=(Object& lhs, Object& rhs) {
+	return !(lhs < rhs);
+}
+Object operator==(Object& lhs, Object& rhs) {
+	int result = 0;
+	std::visit(overload{
+		[&result](int& left, int& right) {result = left==right; },
+		[&result](std::string& left, std::string& right) {result = left==right; },
+		[](auto&, auto &) {throw std::runtime_error("== operator: incompatible operand types"); }
+		}, lhs.data, rhs.data);
+	return Object(result);
+}
+Object operator!=(Object& lhs, Object& rhs) {
+	return !(lhs == rhs);
+}
+Object Object::operator!() {
+	int result = 0;
+	std::visit(overload{
+		[&result](int& x) {result = !x; },
+		[](auto&) {throw std::runtime_error("! operator: incompatible operand types"); }
+		}, this->data);
+	return Object(result);
+}
+Object operator||(Object& lhs, Object& rhs) {
+	int result = 0;
+	std::visit(overload{
+		[&result](int& left, int& right) {result = left||right; },
+		[&result](std::string& left, std::string& right) {result = left<right; },
+		[](auto&, auto &) {throw std::runtime_error("|| operator: incompatible operand types"); }
+		}, lhs.data, rhs.data);
+	return Object(result);
+}
+Object operator&&(Object& lhs, Object& rhs) {
+	int result = 0;
+	std::visit(overload{
+		[&result](int& left, int& right) {result = left&&right; },
+		[&result](std::string& left, std::string& right) {result = left<right; },
+		[](auto&, auto &) {throw std::runtime_error("&& operator: incompatible operand types"); }
+		}, lhs.data, rhs.data);
+	return Object(result);
+}
 
 Scope::Scope() = default;
 const ObjMap& Scope::getMap()

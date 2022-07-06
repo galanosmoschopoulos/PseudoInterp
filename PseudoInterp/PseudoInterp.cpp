@@ -1,19 +1,20 @@
 #include <iostream>
 #include <string>
+#include <sstream>
 #include "lexer.h"
 #include "objects.h"
 #include "parser.h"
 #include "AST.h"
-
 int main()
 {
 	try {
-		std::string str = "a  =   5		  \n	 	 \noutput  a	   \n\n";
-
+		std::string str = "x = 45\noutput x-- == 23\noutput x";
 		Scope globalScope;
 		Parser parser;
 
-		parser.getAST(str)->eval(&globalScope);
+		CodeBlock* mainBlock = parser.getAST(str);
+		mainBlock->eval(&globalScope);
+		delete mainBlock;
 	}
 	catch (std::runtime_error &re)
 	{

@@ -1,11 +1,49 @@
 #pragma once
+enum class OperatorType {
+	COMMA,
+	UNARY_PLUS,
+	UNARY_NEGATION,
+	ADDITION,
+	SUBTRACTION,
+	MULTIPLICATION,
+	DIVISION,
+	MODULO,
+	ADDITION_ASSIGN,
+	SUBTRACTION_ASSIGN,
+	MULTIPLICATION_ASSIGN,
+	DIVISION_ASSIGN,
+	MODULO_ASSIGN,
+	OR,
+	AND,
+	NOT,
+	BIT_AND,
+	BIT_OR,
+	BIT_NOT,
+	BIT_XOR,
+	BIT_LSHIFT,
+	BIT_RSHIFT,
+	EQUAL,
+	NOT_EQUAL,
+	GREATER,
+	LESS,
+	GRE_EQ,
+	LESS_EQ,
+	ASSIGNMENT,
+	PRE_INCR,
+	PRE_DECR,
+	POST_INCR,
+	POST_DECR,
+	OUTPUT,
+	UNKNOWN
+};
+
 #include "objects.h"
-#include "operators.h"
 #include "lexer.h"
 #include "AST.h"
 #include <map>
 
 #define MAX_GROUPS 15
+
 
 using OT = OperatorType;
 using TT = TokenType;
@@ -24,9 +62,19 @@ private:
 		ASTNode* (Parser::* parserFunc)(precedenceGroup*);
 	};
 	precedenceGroup precedenceTab[MAX_GROUPS] = {
+#ifndef COMMA_PRECEDENCE
+#define COMMA_PRECEDENCE 0
+#endif
+		{  {{TT::COMMA, OT::COMMA}}, &Parser::parseBinLeft},
+
 		{  {{TT::OUTPUT, OT::OUTPUT}}, &Parser::parseUnary},
 
-		{  {{TT::EQ, OT::ASSIGNMENT}}, &Parser::parseBinRight},
+		{  {{TT::EQ, OT::ASSIGNMENT},
+			{TT::PLUS_EQ, OT::ADDITION_ASSIGN},
+			{TT::MINUS_EQ, OT::SUBTRACTION_ASSIGN},
+			{TT::STAR_EQ, OT::MULTIPLICATION_ASSIGN},
+			{TT::FORW_SLASH_EQ, OT::DIVISION_ASSIGN},
+			{TT::PERCENT_EQ, OT::MODULO_ASSIGN}}, &Parser::parseBinRight},
 
 		{  {{TT::DOUBLE_VERT_SLASH, OT::OR}}, &Parser::parseBinLeft},
 
@@ -47,20 +95,27 @@ private:
 		    {TT::FORW_SLASH, OT::DIVISION},
 		    {TT::PERCENT, OT::MODULO}}, &Parser::parseBinLeft },
 
-		{   {{TT::EXMARK, OT::NOT}}, &Parser::parseUnary},
-
 		{  {{TT::PLUS, OT::UNARY_PLUS},
-			{TT::MINUS, OT::UNARY_NEGATION}}, &Parser::parseUnary},
+			{TT::MINUS, OT::UNARY_NEGATION},
+			{TT::EXMARK, OT::NOT},
+		    {TT::DOUBLE_PLUS, OT::PRE_INCR},
+		    {TT::DOUBLE_MINUS, OT::PRE_DECR}}, &Parser::parseUnary},
+
+		{  {{TT::DOUBLE_PLUS, OT::POST_INCR},
+		    {TT::DOUBLE_MINUS, OT::POST_DECR}}, &Parser::parseUnaryPostfix},
 
 		{{}, &Parser::parsePrimary}
 	};
 
 	CodeBlock* parseBlock();
-	ASTNode* parseUnary(precedenceGroup* currGroup);
-	ASTNode* parseBinLeft(precedenceGroup* currGroup);
-	ASTNode* parseBinRight(precedenceGroup* currGroup);
-	ASTNode* parsePrimary(precedenceGroup* currGroup);
-
+	ASTNode* parseUnary(precedenceGroup*);
+	ASTNode* parseBinLeft(precedenceGroup*);
+	ASTNode* parseBinRight(precedenceGroup*);
+	ASTNode* parseUnaryPostfix(precedenceGroup*);
+	ASTNode* parsePrimary(precedenceGroup*);
+	
 	int blockLevel = -1; // Each block increases this by one. So if the main block (which contains everything) is level 0, then blockLevel is initially -1.
+
+	std::string getParsingError(const std::string& customMessage = "");
 };
 

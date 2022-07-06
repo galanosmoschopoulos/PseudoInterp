@@ -8,6 +8,7 @@ enum class TokenType { // Enumeration of all token types
     R_PAREN,
     L_SQ_BRACKET,
     R_SQ_BRACKET,
+    COMMA,
     DOT,
     TILDA,
     CIRCUMFLEX,
@@ -18,6 +19,11 @@ enum class TokenType { // Enumeration of all token types
     STAR,
     FORW_SLASH,
     PERCENT,
+    PLUS_EQ,
+    MINUS_EQ,
+    STAR_EQ,
+    FORW_SLASH_EQ,
+    PERCENT_EQ,
     DOUBLE_AMP,
     AMP,
     DOUBLE_VERT_SLASH,
@@ -73,35 +79,47 @@ public:
     Token lookForw(int);
     void scanToken();
     void lexInput();
+    std::tuple<int, int, int> posToLine(int);
+    std::string getInputLine(int);
 private:
     std::vector<Token> tokenList;
     int tokenListIndex = 0;
     std::string originalStr = "";
     std::string str = "";
     std::vector<TokenDescriptor> fixedTokenList = { // A list of keywords, relating lexeme to token type
+            TokenDescriptor("+=", TokenType::PLUS_EQ),
+            TokenDescriptor("-=", TokenType::MINUS_EQ),
+            TokenDescriptor("*=", TokenType::STAR_EQ),
+            TokenDescriptor("/=", TokenType::FORW_SLASH_EQ),
+            TokenDescriptor("%=", TokenType::PERCENT_EQ),
+            TokenDescriptor("++", TokenType::DOUBLE_PLUS),
+            TokenDescriptor("--", TokenType::DOUBLE_MINUS),
             TokenDescriptor("+", TokenType::PLUS),
             TokenDescriptor("-", TokenType::MINUS),
             TokenDescriptor("*", TokenType::STAR),
             TokenDescriptor("/", TokenType::FORW_SLASH),
+            TokenDescriptor("%", TokenType::PERCENT),
             TokenDescriptor("(", TokenType::L_PAREN),
             TokenDescriptor(")", TokenType::R_PAREN),
-            TokenDescriptor("%", TokenType::PERCENT),
             TokenDescriptor("||", TokenType::DOUBLE_VERT_SLASH),
             TokenDescriptor("&&", TokenType::DOUBLE_AMP),
-            TokenDescriptor("=", TokenType::EQ),
             TokenDescriptor("==", TokenType::DOUBLE_EQ),
+            TokenDescriptor("=", TokenType::EQ),
             TokenDescriptor("<<", TokenType::LSHFT),
             TokenDescriptor(">>", TokenType::RSHFT),
             TokenDescriptor("!=", TokenType::NOT_EQ),
+            TokenDescriptor("!", TokenType::EXMARK),
             TokenDescriptor("<=", TokenType::LESS_EQ),
             TokenDescriptor(">=", TokenType::GRE_EQ),
             TokenDescriptor("<", TokenType::LESS),
             TokenDescriptor(">", TokenType::GRE),
+            TokenDescriptor(",", TokenType::COMMA),
             TokenDescriptor("\t", TokenType::TAB),
             TokenDescriptor("\n", TokenType::NEWLINE),
             TokenDescriptor("output", TokenType::OUTPUT),
     };
     std::string preprocessStr(const std::string&);
-    int posToLine(int);
+    std::vector<std::string> subStrVec;
+    std::vector<int> sumOfDeletedStrs;
 };
 

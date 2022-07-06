@@ -1,12 +1,12 @@
 #include "parser.h"
 #include "objects.h"
-#include "operators.h"
 #include "lexer.h"
 #include "AST.h"
 #include <string>
 #include <map>
 #include <vector>
 #include <stdexcept>
+#include <sstream>
 
 Parser::Parser() = default;
 CodeBlock* Parser::getAST(const std::string &inputStr) { // Returns full AST based on inputStr
@@ -14,7 +14,7 @@ CodeBlock* Parser::getAST(const std::string &inputStr) { // Returns full AST bas
 	lexer.lexInput();
 	CodeBlock* mainBlock = parseBlock(); // Consider the whole program to be in a block
 	if (lexer.getCurrToken().getType() != TokenType::EOFILE) { // If there are unparsed characters in the end, something's wrong
-		throw std::runtime_error("Parsing error: illegal expression.");
+		throw std::runtime_error(getParsingError());
 	}
 	return mainBlock;
 }
@@ -32,7 +32,7 @@ CodeBlock* Parser::parseBlock() { // Parses blocks
 			break;
 		}
 		else if (i > blockLevel) { // Excessive tabs yield identation error
-			throw std::runtime_error("Identation error");
+			throw std::runtime_error(getParsingError("identation error"));
 		}
 		while (lexer.getCurrToken().getType() == TokenType::TAB) lexer.scanToken(); // Skip all the tabs
 
@@ -42,7 +42,7 @@ CodeBlock* Parser::parseBlock() { // Parses blocks
 		if (lexer.getCurrToken().getType() == TokenType::NEWLINE) { // If we it doesn't end in newline, something's wrong
 			lexer.scanToken();
 		}
-		else throw std::runtime_error("Illegal expression");
+		else throw std::runtime_error(getParsingError());
 	}
 	blockLevel--; // Block has ended => level down
 	return currBlock;
@@ -81,6 +81,21 @@ ASTNode* Parser::parseBinRight(precedenceGroup* currGroup) { // Parses binary ri
 	}
 	return nodeA;
 }
+
+
+ASTNode* Parser::parseUnaryPostfix(precedenceGroup* currGroup) { 
+	ASTNode* node = (this->*(currGroup+1)->parserFunc)(currGroup + 1);
+	while (1) {
+	TokenType currToken = lexer.getCurrToken().getType();
+		if (currGroup->findOp.contains(currToken)) {
+			lexer.scanToken();
+			node = new UnaryNode(node, currGroup->findOp[currToken]);
+		}
+		else
+			return node;
+	}
+}
+
 ASTNode* Parser::parsePrimary(precedenceGroup*) { // Parses literals, identifiers, and parentheses
 	ASTNode* node;
 	switch (lexer.getCurrToken().getType()) {
@@ -97,7 +112,10 @@ ASTNode* Parser::parsePrimary(precedenceGroup*) { // Parses literals, identifier
 		if (lexer.getCurrToken().getType() == TokenType::R_PAREN) {
 			lexer.scanToken();
 		}
-		else node = nullptr; // If it doesn't end with a matching parenthesis, error
+		else {// If it doesn't end with a matching parenthesis, error
+			node = nullptr;
+			throw std::runtime_error(getParsingError("no matching parenthesis"));
+		}
 		break;
 	case TokenType::ID: // For object identifiers
 		node = new IDNode(lexer.getCurrToken().getLexeme());
@@ -108,8 +126,17 @@ ASTNode* Parser::parsePrimary(precedenceGroup*) { // Parses literals, identifier
 		break;
 	}
 	if (!node) {
-		throw std::runtime_error("Parsing error: illegal expression.");
+		throw std::runtime_error(getParsingError());
 	}
 	return node;
 }
-
+std::string Parser::getParsingError(const std::string &customMessage) {
+	std::stringstream ss;
+	int lineNum = 0, realLineNum = 0, linePos = 0;
+	std::tie(lineNum, realLineNum, linePos) = lexer.posToLine(lexer.getCurrToken().getPos());
+	ss << "Parsing error in line " << realLineNum + 1 << ": " << customMessage << '\n';
+	ss << lexer.getInputLine(lineNum) << '\n';
+	for (int i = 0; i != linePos; i++, ss << ' ');
+	ss << "^\n";
+	return ss.str();
+}

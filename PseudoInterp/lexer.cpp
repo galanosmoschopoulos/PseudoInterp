@@ -4,7 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
-
+#include <tuple>
 Lexer::Lexer() = default;
 Lexer::Lexer(const std::string& strIn) : originalStr(strIn) {
 	str = preprocessStr(originalStr);
@@ -19,20 +19,35 @@ Token Lexer::getCurrToken() { return Lexer::lookForw(0); } // Returns current to
 
 std::string Lexer::preprocessStr(const std::string& initStr) // Removes blank lines and trailing spaces, adds newline to the end.
 {
+	subStrVec.erase(subStrVec.begin(), subStrVec.end());
 	std::stringstream ss(initStr);
 	std::string subStr, finalStr;
 	std::string whitespaces(" \t\f\v\n\r");
+	int deletedLines = 0;
 	while (std::getline(ss, subStr, '\n')) {
 		if (std::any_of(std::begin(subStr), std::end(subStr), ::isgraph)) { // If the string contains graphic characters (i.e. not just spaces)
 			subStr.erase(subStr.find_last_not_of(whitespaces) + 1);
 			finalStr += subStr + "\n"; // Add to new string
+			subStrVec.push_back(subStr);
+			sumOfDeletedStrs.push_back(deletedLines);
 		}
+		else deletedLines++;
 	}
 	return finalStr;
 }
-int Lexer::posToLine(int pos) // Given a character index in a multi-line string, it returns the number of line the character is
+std::tuple<int, int, int> Lexer::posToLine(int pos) // Given a character index in a multi-line string, it returns the number of line the character is, and the position of the char in that line
 {
-	return static_cast<int>(std::count(str.begin(), str.begin() + pos + 1, '\n') + 1);
+	int lineNum = std::count(str.begin(), str.begin() + pos, '\n');
+	int realLineNum = lineNum + sumOfDeletedStrs[lineNum];
+	// Code missing
+	return std::make_tuple(lineNum, realLineNum, 0);
+}
+
+std::string Lexer::getInputLine(int lineNum) {
+	std::stringstream ss(str);
+	std::string subStr;
+	for (int i = 0; i <= lineNum; i++, std::getline(ss, subStr, '\n'));
+	return subStr;
 }
 void Lexer::lexInput()
 {

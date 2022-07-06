@@ -144,7 +144,6 @@
     <ClCompile Include="AST.cpp" />
     <ClCompile Include="lexer.cpp" />
     <ClCompile Include="objects.cpp" />
-    <ClCompile Include="operators.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="PseudoInterp.cpp" />
   </ItemGroup>
@@ -152,7 +151,6 @@
     <ClInclude Include="AST.h" />
     <ClInclude Include="lexer.h" />
     <ClInclude Include="objects.h" />
-    <ClInclude Include="operators.h" />
     <ClInclude Include="parser.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

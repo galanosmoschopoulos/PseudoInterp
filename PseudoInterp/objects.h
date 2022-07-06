@@ -59,30 +59,45 @@ public:
 	int getInt() const;
 	std::string getStr() const;
 	VariantType data;
-	int scopeLevel;
-	Object operator=(const Object &obj2);
-private:
+
+	template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
+	template<class... Ts> overload(Ts...)->overload<Ts...>;
+
+	Object& operator=(const Object&);
+	Object& operator+=(Object&);
+	friend Object operator+(Object, Object&);
+	Object& operator-=(Object&);
+	friend Object operator-(Object, Object&);
+	Object& operator*=(Object&);
+	friend Object operator*(Object, Object&);
+	Object& operator/=(Object&);
+	friend Object operator/(Object, Object&);
+	Object& operator%=(Object&);
+	friend Object operator%(Object, Object&);
+	Object& operator++();
+	Object& operator--();
+	Object& operator++(int);
+	Object& operator--(int);
+	Object operator-();
+	Object operator+();
+	Object operator!();
+	friend Object operator<(Object&, Object&);
+	friend Object operator>(Object&, Object&);
+	friend Object operator<=(Object&, Object&);
+	friend Object operator>=(Object&, Object&);
+	friend Object operator==(Object&, Object&);
+	friend Object operator!=(Object&, Object&);
+	friend Object operator||(Object&, Object&);
+	friend Object operator&&(Object&, Object&);
+	friend Object operator,(Object&, Object&);
+
+	private:
 	ObjectType currentType = ObjectType::UNDEFINED;
 	std::vector<ObjectType> typeSeq;
 	bool lval = false;
 	//void traceTypeRecursive(Object &obj);
 	ArrayContainer& getArrayContainer();
 };
-
-/*
-class ObjectKey {
-public:
-	ObjectKey() = default;
-	ObjectKey(std::string id, int level) : id(id), level(level) {}
-	std::string id = "";
-	int level;
-	bool operator==(const ObjectKey& key2) const{
-		return level == key2.level && id == key2.id;
-	}
-	bool operator<(const ObjectKey& key2) const {
-		return level < key2.level;
-	}
-};*/
 
 using ObjMap = std::map<std::pair<int, std::string>, Object>;
 class Scope
