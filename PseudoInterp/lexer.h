@@ -44,6 +44,13 @@ enum class TokenType { // Enumeration of all token types
     TAB,
     NEWLINE,
     OUTPUT,
+    WHILE,
+    IF,
+    ELIF,
+    ELSE,
+    FOR,
+    FROM,
+    TO,
     EOFILE,
     UNKNOWN
 };
@@ -116,6 +123,13 @@ private:
             TokenDescriptor(",", TokenType::COMMA),
             TokenDescriptor("\t", TokenType::TAB),
             TokenDescriptor("\n", TokenType::NEWLINE),
+            TokenDescriptor("while", TokenType::WHILE),
+            TokenDescriptor("if", TokenType::IF),
+            TokenDescriptor("elif", TokenType::ELIF),
+            TokenDescriptor("else", TokenType::ELSE),
+            TokenDescriptor("for", TokenType::FOR),
+            TokenDescriptor("from", TokenType::FROM),
+            TokenDescriptor("to", TokenType::TO),
             TokenDescriptor("output", TokenType::OUTPUT),
     };
     std::string preprocessStr(const std::string&);

@@ -8,7 +8,7 @@
 int main()
 {
 	try {
-		std::string str = "x = 45\noutput x-- == 23\noutput x";
+		std::string str = "x = 5\nfor i from 0 to 10\n\toutput x";
 		Scope globalScope;
 		Parser parser;
 

@@ -229,13 +229,13 @@ Object& Object::operator--() {
 		}, this->data);
 	return *this;
 }
-Object& Object::operator++(int) {
+Object Object::operator++(int) {
 	Object old = *this;
 	operator++();
 	old.setLval(false);
 	return old;
 }
-Object& Object::operator--(int) {
+Object Object::operator--(int) {
 	Object old = *this;
 	operator--();
 	return old;
@@ -314,7 +314,14 @@ Object operator&&(Object& lhs, Object& rhs) {
 		}, lhs.data, rhs.data);
 	return Object(result);
 }
-
+bool Object::isTrue() {
+	bool result = false;
+	std::visit(overload{
+		[&result](int& x) {result = (x == 0)?(false):(true); },
+		[](auto&) { throw std::runtime_error("Not a bool value."); }
+		}, this->data);
+	return result;
+}
 Scope::Scope() = default;
 const ObjMap& Scope::getMap()
 {
@@ -344,13 +351,8 @@ void Scope::addObj(const Object& obj, const std::string& id)
 }
 
 Object* Scope::getObj(const std::string& id)
-{/*
-	for (ObjMap::reverse_iterator itr = scopeMap.rbegin(); itr != scopeMap.rend(); itr++) {
-		if (itr->first.second == id) {
-			return &itr->second;
-		}
-	}*/
-	for (int i = level; i >= 0; i--) {
+{
+	for (int i = 0; i <= level; i++) {
 		if (scopeMap.contains(std::make_pair(i, id))) {
 			return &scopeMap[std::make_pair(i, id)];
 		}
@@ -359,13 +361,7 @@ Object* Scope::getObj(const std::string& id)
 }
 
 bool Scope::checkObj(const std::string& id) const
-{/*
-	for (int i = level; i >= 0; i--) {
-		if (scopeMap.contains(std::make_pair(i, id))) {
-			return true;
-		}
-	}
-	return false;*/
+{
 	return scopeMap.contains(std::make_pair(level, id));
 }
 void Scope::printScope() {

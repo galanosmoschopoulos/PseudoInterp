@@ -76,8 +76,8 @@ public:
 	friend Object operator%(Object, Object&);
 	Object& operator++();
 	Object& operator--();
-	Object& operator++(int);
-	Object& operator--(int);
+	Object operator++(int);
+	Object operator--(int);
 	Object operator-();
 	Object operator+();
 	Object operator!();
@@ -90,7 +90,8 @@ public:
 	friend Object operator||(Object&, Object&);
 	friend Object operator&&(Object&, Object&);
 	friend Object operator,(Object&, Object&);
-
+	
+	bool isTrue();
 	private:
 	ObjectType currentType = ObjectType::UNDEFINED;
 	std::vector<ObjectType> typeSeq;

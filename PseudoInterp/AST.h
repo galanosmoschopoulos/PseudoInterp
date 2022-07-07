@@ -5,7 +5,86 @@
 #include <vector>
 #include <initializer_list>
 
-static Object& checkLval(Object& obj);
+static void cleanTmps(std::initializer_list<Object*>);
+inline static Object& checkLval(Object& obj);
+
+class CodeBlock;
+class Statement;
+class ASTNode;
+
+class CodeBlock
+{
+public:
+    CodeBlock();
+    ~CodeBlock();
+    void eval(Scope*);
+    void addStatement(Statement*);
+private:
+    std::vector<Statement*> statementVec;
+};
+
+class Statement
+{
+public:
+    Statement();
+    virtual ~Statement();
+    virtual void eval(Scope*);
+};
+
+class IfStatement final : public Statement
+{
+public:
+    IfStatement();
+    ~IfStatement();
+    IfStatement(ASTNode*, CodeBlock*);
+    void eval(Scope*) override;
+    void addCase(ASTNode*, CodeBlock*);
+private:
+    std::vector<std::pair<ASTNode*, CodeBlock*>> cases;
+};
+
+class WhileStatement final : public Statement
+{
+public:
+    WhileStatement();
+    ~WhileStatement();
+    WhileStatement(ASTNode*, CodeBlock*);
+    void eval(Scope*) override;
+private:
+    ASTNode* condition = nullptr;
+    CodeBlock* block = nullptr;
+};
+
+class ForStatement final : public Statement
+{
+public:
+    ForStatement();
+    ~ForStatement();
+    ForStatement(ASTNode*, ASTNode*, ASTNode*, CodeBlock*);
+    void eval(Scope*) override;
+private:
+    ASTNode* counterNode = nullptr;
+    ASTNode* lowerNode = nullptr;
+    ASTNode* upperNode = nullptr;
+    CodeBlock* block = nullptr;
+};
+
+class ExprStatement final : public Statement
+{
+public:
+    ExprStatement();
+    ~ExprStatement();
+    ExprStatement(ASTNode*);
+    void eval(Scope*) override;
+private:
+    ASTNode* exprRoot = nullptr;
+};
+
+
+
+
+
+
 class ASTNode
 {
 public:
@@ -15,7 +94,6 @@ public:
     void setForceRval(bool);
 protected:
     bool forceRval = false;
-    static void cleanTmps(std::initializer_list<Object*>);
 };
 
 class BinaryNode final : public ASTNode
@@ -36,16 +114,6 @@ private:
 
 };
 
-class CodeBlock
-{
-public:
-    CodeBlock();
-    ~CodeBlock();
-    void eval(Scope*);
-    void addStatement(ASTNode*);
-private:
-    std::vector<ASTNode*> statementVec;
-};
 
 class LiteralNode final : public ASTNode
 {

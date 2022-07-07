@@ -108,6 +108,10 @@ private:
 	};
 
 	CodeBlock* parseBlock();
+	Statement* parseWhile();
+	Statement* parseIf();
+	Statement* parseFor();
+	Statement* parseExpr();
 	ASTNode* parseUnary(precedenceGroup*);
 	ASTNode* parseBinLeft(precedenceGroup*);
 	ASTNode* parseBinRight(precedenceGroup*);
@@ -115,7 +119,7 @@ private:
 	ASTNode* parsePrimary(precedenceGroup*);
 	
 	int blockLevel = -1; // Each block increases this by one. So if the main block (which contains everything) is level 0, then blockLevel is initially -1.
-
+	bool lessTabs(int&);
 	std::string getParsingError(const std::string& customMessage = "");
 };
 
