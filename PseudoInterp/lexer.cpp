@@ -35,20 +35,6 @@ std::string Lexer::preprocessStr(const std::string& initStr) // Removes blank li
 	}
 	return finalStr;
 }
-std::tuple<int, int, int> Lexer::posToLine(int pos) // Given a character index in a multi-line string, it returns the number of line the character is, and the position of the char in that line
-{
-	int lineNum = std::count(str.begin(), str.begin() + pos, '\n');
-	int realLineNum = lineNum + sumOfDeletedStrs[lineNum];
-	// Code missing
-	return std::make_tuple(lineNum, realLineNum, 0);
-}
-
-std::string Lexer::getInputLine(int lineNum) {
-	std::stringstream ss(str);
-	std::string subStr;
-	for (int i = 0; i <= lineNum; i++, std::getline(ss, subStr, '\n'));
-	return subStr;
-}
 void Lexer::lexInput()
 {
 	tokenList.erase(tokenList.begin(), tokenList.end()); // Resets tokenList
@@ -65,10 +51,9 @@ void Lexer::lexInput()
 		std::string tmpLexeme;
 		for (TokenDescriptor& td : fixedTokenList) // Check every fixed token (i.e. keywords)
 		{
-			int charsMatch = 0;
-			for (int p = 0; p < td.getLen() && (td.getLexeme()[p] == str[i + p]) && (i + p < str.size()); p++) // Count the matching characters
-				charsMatch++;
-			if (td.getLen() == charsMatch) // If all match
+			int p = 0;
+			for (; p < td.getLen() && (td.getLexeme()[p] == str[i + p]) && (i + p < str.size()); p++); // Count the matching characters
+			if (td.getLen() == p) // If all match
 			{
 				foundFixedToken = true;
 				tokenList.push_back(Token(td.getLexeme(), td.getType(), i)); // add token
@@ -91,11 +76,7 @@ void Lexer::lexInput()
 		}
 		else if (isspace(str[i]))
 		{
-			int spaceCount = 0;
-			while (isspace(str[i]) && i < str.size()) // Count consequent spaces
-				spaceCount++, i++;
-			//Whitespaces are ignored
-			//tokenList.push_back(Token(" ", TokenType::WHSPACE, i - spaceCount));
+			for (; isspace(str[i]) && i < str.size(); i++); // Whitespaces are ignored
 		}
 		else
 		{
@@ -109,6 +90,15 @@ TokenDescriptor::TokenDescriptor(const std::string& tokStr, TokenType tokType) :
 std::string TokenDescriptor::getLexeme() { return lexeme; }
 size_t TokenDescriptor::getLen() { return lexeme.size(); }
 TokenType TokenDescriptor::getType() { return type; }
+TokenType TokenDescriptor::getOppositeType() {
+	switch (type) {
+	case TokenType::L_PAREN: return TokenType::R_PAREN;
+	case TokenType::R_PAREN: return TokenType::L_PAREN;
+	case TokenType::L_SQ_BRACKET: return TokenType::R_SQ_BRACKET;
+	case TokenType::R_SQ_BRACKET: return TokenType::L_SQ_BRACKET;
+	default: return TokenType::UNKNOWN;
+	}
+}
 
 Token::Token(const std::string& tokStr, TokenType tokType, int tokPos) : pos(tokPos)
 {

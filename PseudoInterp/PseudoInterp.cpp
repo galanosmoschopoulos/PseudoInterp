@@ -5,20 +5,25 @@
 #include "objects.h"
 #include "parser.h"
 #include "AST.h"
-int main()
-{
+
+void interpret(const std::string& inputStr) {
 	try {
-		std::string str = "x = 5\nfor i from 0 to 10\n\toutput x";
 		Scope globalScope;
 		Parser parser;
 
-		CodeBlock* mainBlock = parser.getAST(str);
-		mainBlock->eval(&globalScope);
+		CodeBlock* mainBlock = parser.getAST(inputStr);
+		mainBlock->eval(&globalScope, false);
 		delete mainBlock;
 	}
 	catch (std::runtime_error &re)
 	{
 		std::cout << re.what() << std::endl;
 	}
+}
+
+int main()
+{
+	
+	interpret("function factorial(x)\n\tif x == 1\n\t\treturn 1\n\treturn x*factorial(x-1)\noutput factorial(5)");
 	return 0;
 }

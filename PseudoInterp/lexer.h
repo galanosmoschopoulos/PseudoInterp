@@ -4,6 +4,8 @@
 #include <array>
 
 enum class TokenType { // Enumeration of all token types
+    RETURN_TOK,
+    FUNCTION_DEF,
     L_PAREN,
     R_PAREN,
     L_SQ_BRACKET,
@@ -62,6 +64,7 @@ public:
     std::string getLexeme();
     size_t getLen();
     TokenType getType();
+    TokenType getOppositeType();
 protected:
     std::string lexeme = "";
     TokenType type = TokenType::UNKNOWN;
@@ -86,8 +89,6 @@ public:
     Token lookForw(int);
     void scanToken();
     void lexInput();
-    std::tuple<int, int, int> posToLine(int);
-    std::string getInputLine(int);
 private:
     std::vector<Token> tokenList;
     int tokenListIndex = 0;
@@ -108,6 +109,8 @@ private:
             TokenDescriptor("%", TokenType::PERCENT),
             TokenDescriptor("(", TokenType::L_PAREN),
             TokenDescriptor(")", TokenType::R_PAREN),
+            TokenDescriptor("[", TokenType::L_SQ_BRACKET),
+            TokenDescriptor("]", TokenType::R_SQ_BRACKET),
             TokenDescriptor("||", TokenType::DOUBLE_VERT_SLASH),
             TokenDescriptor("&&", TokenType::DOUBLE_AMP),
             TokenDescriptor("==", TokenType::DOUBLE_EQ),
@@ -131,6 +134,8 @@ private:
             TokenDescriptor("from", TokenType::FROM),
             TokenDescriptor("to", TokenType::TO),
             TokenDescriptor("output", TokenType::OUTPUT),
+            TokenDescriptor("return", TokenType::RETURN_TOK),
+            TokenDescriptor("function", TokenType::FUNCTION_DEF)
     };
     std::string preprocessStr(const std::string&);
     std::vector<std::string> subStrVec;

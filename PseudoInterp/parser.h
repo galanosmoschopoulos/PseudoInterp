@@ -33,17 +33,24 @@ enum class OperatorType {
 	PRE_DECR,
 	POST_INCR,
 	POST_DECR,
+	FUNCTION_CALL,
+	SUBSCRIPT,
 	OUTPUT,
 	UNKNOWN
 };
 
+#include <map>
 #include "objects.h"
 #include "lexer.h"
 #include "AST.h"
-#include <map>
+
+class CodeBlock;
+class Statement;
+class ASTNode;
+class Object;
+class Scope;
 
 #define MAX_GROUPS 15
-
 
 using OT = OperatorType;
 using TT = TokenType;
@@ -104,6 +111,9 @@ private:
 		{  {{TT::DOUBLE_PLUS, OT::POST_INCR},
 		    {TT::DOUBLE_MINUS, OT::POST_DECR}}, &Parser::parseUnaryPostfix},
 
+		{  {{TT::L_SQ_BRACKET, OT::SUBSCRIPT},
+		    {TT::L_PAREN, OT::FUNCTION_CALL}}, &Parser::parsePostfixArgList},
+
 		{{}, &Parser::parsePrimary}
 	};
 
@@ -112,12 +122,14 @@ private:
 	Statement* parseIf();
 	Statement* parseFor();
 	Statement* parseExpr();
+	Statement* parseReturn();
+	Statement* parseFunctionDef();
 	ASTNode* parseUnary(precedenceGroup*);
 	ASTNode* parseBinLeft(precedenceGroup*);
 	ASTNode* parseBinRight(precedenceGroup*);
 	ASTNode* parseUnaryPostfix(precedenceGroup*);
 	ASTNode* parsePrimary(precedenceGroup*);
-	
+	ASTNode* parsePostfixArgList(precedenceGroup*);
 	int blockLevel = -1; // Each block increases this by one. So if the main block (which contains everything) is level 0, then blockLevel is initially -1.
 	bool lessTabs(int&);
 	std::string getParsingError(const std::string& customMessage = "");

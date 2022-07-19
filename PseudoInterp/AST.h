@@ -5,19 +5,22 @@
 #include <vector>
 #include <initializer_list>
 
-static void cleanTmps(std::initializer_list<Object*>);
-inline static Object& checkLval(Object& obj);
-
 class CodeBlock;
 class Statement;
 class ASTNode;
+class Object;
+class Scope;
+enum class OperatorType;
+
+static void cleanTmps(std::initializer_list<Object*>);
+inline static Object& checkLval(const Object& obj);
 
 class CodeBlock
 {
 public:
     CodeBlock();
     ~CodeBlock();
-    void eval(Scope*);
+    Object* eval(Scope*, bool isInFunction);
     void addStatement(Statement*);
 private:
     std::vector<Statement*> statementVec;
@@ -28,7 +31,7 @@ class Statement
 public:
     Statement();
     virtual ~Statement();
-    virtual void eval(Scope*);
+    virtual Object* eval(Scope*, bool isInFunction);
 };
 
 class IfStatement final : public Statement
@@ -37,7 +40,7 @@ public:
     IfStatement();
     ~IfStatement();
     IfStatement(ASTNode*, CodeBlock*);
-    void eval(Scope*) override;
+    Object* eval(Scope*, bool isInFunction) override;
     void addCase(ASTNode*, CodeBlock*);
 private:
     std::vector<std::pair<ASTNode*, CodeBlock*>> cases;
@@ -49,7 +52,7 @@ public:
     WhileStatement();
     ~WhileStatement();
     WhileStatement(ASTNode*, CodeBlock*);
-    void eval(Scope*) override;
+    Object* eval(Scope*, bool isInFunction) override;
 private:
     ASTNode* condition = nullptr;
     CodeBlock* block = nullptr;
@@ -61,7 +64,7 @@ public:
     ForStatement();
     ~ForStatement();
     ForStatement(ASTNode*, ASTNode*, ASTNode*, CodeBlock*);
-    void eval(Scope*) override;
+    Object* eval(Scope*, bool isInFunction) override;
 private:
     ASTNode* counterNode = nullptr;
     ASTNode* lowerNode = nullptr;
@@ -75,13 +78,34 @@ public:
     ExprStatement();
     ~ExprStatement();
     ExprStatement(ASTNode*);
-    void eval(Scope*) override;
+    Object* eval(Scope*, bool isInFunction) override;
 private:
     ASTNode* exprRoot = nullptr;
 };
 
+class ReturnStatement final : public Statement
+{
+public:
+    ReturnStatement();
+    ~ReturnStatement();
+    ReturnStatement(ASTNode*);
+    Object* eval(Scope*, bool isInFunction) override;
+private:
+    ASTNode* returnRoot = nullptr;
+};
 
-
+class FunctionDefStatement final : public Statement
+{
+public:
+    FunctionDefStatement();
+    ~FunctionDefStatement();
+    FunctionDefStatement(ASTNode*, const std::vector<ASTNode*>&, CodeBlock*);
+    Object* eval(Scope*, bool) override;
+private:
+    ASTNode* funcID = nullptr;
+    std::vector<ASTNode*> funcParams;
+    CodeBlock* block = nullptr;
+};
 
 
 
@@ -96,16 +120,25 @@ protected:
     bool forceRval = false;
 };
 
+class nAryNode final : public ASTNode
+{
+public:
+    nAryNode();
+    ~nAryNode();
+    nAryNode(ASTNode*, OperatorType, std::vector<ASTNode*>&);
+    Object* eval(Scope* scope, bool lSide = false) override;
+private:
+    OperatorType opType = OperatorType::UNKNOWN;
+    ASTNode* mainOperand = nullptr;
+    std::vector<ASTNode*> nOperands;
+};
+
 class BinaryNode final : public ASTNode
 {
 public:
     BinaryNode();
     ~BinaryNode();
     BinaryNode(ASTNode*, ASTNode*, OperatorType);
-    ASTNode* getLeft() const;
-    ASTNode* getRight() const;
-    void setLeft(ASTNode*);
-    void setRight(ASTNode*);
     Object* eval(Scope*, bool lSide = false) override;
 private:
     OperatorType opType = OperatorType::UNKNOWN;
@@ -120,10 +153,10 @@ class LiteralNode final : public ASTNode
 public:
     LiteralNode();
     ~LiteralNode();
-    LiteralNode(auto val) : literal(Object(val)) { }
+    LiteralNode(auto val) : literal(new Object(val)) { }
     Object* eval(Scope*, bool lSide = false) override;
 private:
-    Object literal;
+    Object *literal = nullptr;
 };
 
 class IDNode final : public ASTNode

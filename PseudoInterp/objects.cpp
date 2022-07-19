@@ -12,6 +12,32 @@ vecOfPtrs* ArrayContainer::getVecPtr() const
 	return vecPtr;
 }
 
+Function::Function(CodeBlock* block, const std::vector<ASTNode*>& params, int level) : block(block), paramVec(params), definedFuncLevel(level){};
+Function::Function() = default;
+Function::~Function() {
+	/*
+	delete block;
+	for (ASTNode* paramNode : paramVec) {
+		delete paramNode;
+	}*/
+}
+
+Object* Function::eval(Scope* scope, const std::vector<Object*>& argVec) {
+	if (argVec.size() != paramVec.size())
+		throw std::runtime_error("Wrong number of arguments");
+
+	scope->incLevel();
+	
+	Object* funcResult = nullptr;
+	for (int i = 0; i != argVec.size(); i++) {
+		*paramVec[i]->eval(scope, true) = *argVec[i];
+	}
+	funcResult = block->eval(scope, true);
+	if (funcResult == nullptr) funcResult = new Object;
+	scope->decrLevel();
+	return funcResult;
+}
+
 
 Object::Object() = default;
 Object::Object(std::string val)
@@ -33,6 +59,12 @@ Object::Object(ObjectType type, int val)
 		initArray(val);
 	}
 }
+Object::Object(const Function& function)
+{
+	currentType = ObjectType::FUNC;
+	data = function;
+}
+
 ObjectType Object::getType() const
 {
 	return currentType;
@@ -107,13 +139,6 @@ ArrayContainer &Object::getArrayContainer()
 {
 	return std::get<ArrayContainer>(data);
 }
-void Object::printTypeTrace() const
-{
-	for (const auto &t : typeSeq)
-	{
-		std::cout << typeString[t] << std::endl;
-	}
-}
 void Object::setVal(auto val)
 {
 	data = val;
@@ -126,22 +151,6 @@ bool Object::isLval() const
 void Object::setLval(bool isIt)
 {
 	lval = isIt;
-}
-int Object::getInt() const
-{
-	if(getType() != ObjectType::INT)
-	{
-		throw std::runtime_error("Requesting int value from non int object.");
-	}
-	return std::get<int>(data);
-}
-std::string Object::getStr() const
-{
-	if(getType() != ObjectType::STR)
-	{
-		throw std::runtime_error("Requesting std::string from non string object.");
-	}
-	return std::get<std::string>(data);
 }
 template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
 template<class... Ts> overload(Ts...)->overload<Ts...>;
@@ -322,51 +331,65 @@ bool Object::isTrue() {
 		}, this->data);
 	return result;
 }
+Object* Object::operator()(Scope* scope, const std::vector<Object*>& argVec) {
+	Object* result = nullptr;
+	std::visit(overload{
+		[&result, &scope, &argVec](Function& func) {result = func.eval(scope, argVec); },
+		[](auto&) { throw std::runtime_error("Not a function."); }
+		}, this->data);
+	return result;
+
+}
+
+
 Scope::Scope() = default;
 const ObjMap& Scope::getMap()
 {
 	return scopeMap;
 }
-int Scope::getLevel() { return level; }
-void Scope::incLevel() { level++; }
+int Scope::getLevel() { return scopeLevel; }
+int Scope::getFuncLevel() { return funcLevel; }
+void Scope::incLevel() { scopeLevel++; }
+void Scope::incFuncLevel() { funcLevel++; }
+void Scope::decrFuncLevel() { funcLevel--; }
 void Scope::decrLevel() {
-	if (level == 0) {
+	if (scopeLevel == 0) {
 		throw std::runtime_error("Scope level cannot be negative.");
 	}
-	std::vector<std::pair<int, std::string>> toBeDeleted;
+	std::vector<ObjKey> toBeDeleted;
 	for (ObjMap::reverse_iterator itr = scopeMap.rbegin(); itr != scopeMap.rend(); itr++) {
-		if (itr->first.first == level) {
+		if (itr->first.scopeLevel == scopeLevel) {
 			toBeDeleted.push_back(itr->first);
 		}
 	}
 	for (const auto& x : toBeDeleted) {
 		scopeMap.erase(x);
 	}
-	level--;
+	scopeLevel--;
 }
 void Scope::addObj(const Object& obj, const std::string& id)
 {
-	scopeMap[std::make_pair(level, id)] = obj;
-	scopeMap[std::make_pair(level, id)].setLval(true);
+	scopeMap[ObjKey(scopeLevel, funcLevel, id)] = new Object(obj);
+	scopeMap[ObjKey(scopeLevel, funcLevel, id)]->setLval(true);
 }
 
 Object* Scope::getObj(const std::string& id)
 {
-	for (int i = 0; i <= level; i++) {
-		if (scopeMap.contains(std::make_pair(i, id))) {
-			return &scopeMap[std::make_pair(i, id)];
+	for (ObjMap::reverse_iterator itr = scopeMap.rbegin(); itr != scopeMap.rend(); itr++) {
+		if (itr->first.ID == id) {
+			return itr->second;
 		}
 	}
 	throw std::runtime_error("Object with identifier \"" + id + "\" does not exist.");
 }
 
-bool Scope::checkObj(const std::string& id) const
+bool Scope::checkObj(const std::string& findId) const
 {
-	return scopeMap.contains(std::make_pair(level, id));
+	return scopeMap.contains(ObjKey(scopeLevel, funcLevel, findId));
 }
 void Scope::printScope() {
 	for (auto x : scopeMap) {
-		std::cout << "[ID: " << x.first.second << ", Level: " << x.first.first << "]\n";
+		std::cout << "[ID: " << x.first.ID << ", Level: " << x.first.scopeLevel << "]\n";
 	}
 }
 
@@ -385,3 +408,4 @@ void output(const Object &obj)
 		break;
 	}
 }
+
