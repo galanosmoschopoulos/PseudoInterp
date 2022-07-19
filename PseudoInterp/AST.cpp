@@ -1,19 +1,21 @@
 #include "AST.h"
 #include <stdexcept>
 
-inline static Object& checkLval(const Object& obj) {
-    if (!obj.isLval()) // We have to ensure that lhs is an lVal. I.e. (x + 5) = 2 is invalid, but x = 2 is valid
-    {
-        throw std::runtime_error("Assignment: left operand is not a modifiable lvalue.");
-    }
-    return const_cast<Object&>(obj);
+inline static Object& checkLval(const Object& obj)
+{
+	if (!obj.isLval()) // We have to ensure that lhs is an lVal. I.e. (x + 5) = 2 is invalid, but x = 2 is valid
+	{
+		throw std::runtime_error("Assignment: left operand is not a modifiable lvalue.");
+	}
+	return const_cast<Object&>(obj);
 }
 
-static void cleanTmps(std::initializer_list<Object*> tmpList) // Cleans temporary objects created in the evaluation of an expression (i.e. in a = 5 + 3*2, the object with value 3*2 is temporary)
+static void cleanTmps(const std::initializer_list<Object*> tmpList)
+// Cleans temporary objects created in the evaluation of an expression (i.e. in a = 5 + 3*2, the object with value 3*2 is temporary)
 {
-	for(const Object* oPtr : tmpList)
+	for (const Object* oPtr : tmpList)
 	{
-		if(!oPtr->isLval()) // If they're not lValues (i.e. variables in the scope), delete them
+		if (!oPtr->isLval()) // If they're not lValues (i.e. variables in the scope), delete them
 		{
 			delete oPtr;
 		}
@@ -21,31 +23,39 @@ static void cleanTmps(std::initializer_list<Object*> tmpList) // Cleans temporar
 }
 
 
-
 /*--------------------------------------------------------------------------------------------------------------------------------*/
 CodeBlock::CodeBlock() = default;
-CodeBlock::~CodeBlock() {
-	for (auto st : statementVec) {
+
+CodeBlock::~CodeBlock()
+{
+	for (const Statement* st : statementVec)
+	{
 		delete st;
 	}
 }
-Object* CodeBlock::eval(Scope* scope, bool isInFunction)
+
+Object* CodeBlock::eval(Scope* scope, const bool isInFunction) const
 {
 	Object* tmpObj = nullptr;
 	scope->incLevel(); // Increase scope level
-	for (auto st : statementVec) { // Execute all statements
-		if ((tmpObj = st->eval(scope, isInFunction)) != nullptr) {
+	for (Statement* st : statementVec)
+	{
+		// Execute all statements
+		if ((tmpObj = st->eval(scope, isInFunction)) != nullptr)
+		{
 			break;
 		}
 	}
 	scope->decrLevel(); // Decrease scope level
 	return tmpObj;
 }
-void CodeBlock::addStatement(Statement* st) {
+
+void CodeBlock::addStatement(Statement* st)
+{
 	statementVec.push_back(st);
 }
-/*--------------------------------------------------------------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------------------------------------------------------------*/
 
 
 /*--------------------------------------------------------------------------------------------------------------------------------*/
@@ -54,15 +64,24 @@ Statement::~Statement() = default;
 Object* Statement::eval(Scope*, bool) { return nullptr; }
 
 WhileStatement::WhileStatement() = default;
-WhileStatement::~WhileStatement() {
+
+WhileStatement::~WhileStatement()
+{
 	delete condition;
 	delete block;
 }
-WhileStatement::WhileStatement(ASTNode* condition, CodeBlock* block) : condition(condition), block(block) {}
-Object* WhileStatement::eval(Scope* scope, bool isInFunction) {
+
+WhileStatement::WhileStatement(ASTNode* condition, CodeBlock* block) : condition(condition), block(block)
+{
+}
+
+Object* WhileStatement::eval(Scope* scope, const bool isInFunction)
+{
 	Object* conditionObj = nullptr;
 	Object* tmpObj = nullptr;
-	while (( conditionObj = condition->eval(scope) )->isTrue()) { // As long as it is true
+	while ((conditionObj = condition->eval(scope))->isTrue())
+	{
+		// As long as it is true
 		tmpObj = block->eval(scope, isInFunction);
 		cleanTmps({conditionObj}); // The result of the condition changes each time
 		if (tmpObj != nullptr) break;
@@ -71,27 +90,38 @@ Object* WhileStatement::eval(Scope* scope, bool isInFunction) {
 }
 
 ForStatement::ForStatement() = default;
-ForStatement::~ForStatement() {
+
+ForStatement::~ForStatement()
+{
 	delete counterNode;
 	delete upperNode;
 	delete lowerNode;
 	delete block;
 }
+
 ForStatement::ForStatement(ASTNode* counterNode, ASTNode* lowerNode, ASTNode* upperNode, CodeBlock* block) :
-	counterNode(counterNode), lowerNode(lowerNode), upperNode(upperNode), block(block) {}
-Object* ForStatement::eval(Scope* scope, bool isInFunction) {
-	Object* lowerObj = lowerNode->eval(scope), *upperObj = upperNode->eval(scope);
+	counterNode(counterNode), lowerNode(lowerNode), upperNode(upperNode), block(block)
+{
+}
+
+Object* ForStatement::eval(Scope* scope, const bool isInFunction)
+{
+	Object *lowerObj = lowerNode->eval(scope), *upperObj = upperNode->eval(scope);
 	scope->incLevel(); // We want the counter variable to exist in an inner scope (only available to the block)
-	Object* counterObj = counterNode->eval(scope, true); // lSide = true, to allow initialization of the variable instead of searching for it. It is like doing var = 0.
+	Object* counterObj = counterNode->eval(scope, true);
+	// lSide = true, to allow initialization of the variable instead of searching for it. It is like doing var = 0.
 	if (!counterObj->isLval()) throw std::runtime_error("Counter variable in for loop not an lval.");
-	if ((* lowerObj > *upperObj).isTrue()) throw std::runtime_error("For loop limits error."); // Verift that lower <= upper
+	if ((*lowerObj > *upperObj).isTrue()) throw std::runtime_error("For loop limits error.");
+	// Verify that lower <= upper
 	*counterObj = *lowerObj;
 	Object* tmpObj = nullptr;
-	while ((*counterObj <= *upperObj).isTrue()) {
+	while ((*counterObj <= *upperObj).isTrue())
+	{
 		tmpObj = block->eval(scope, isInFunction);
 		if (tmpObj != nullptr) break;
 		cleanTmps({lowerObj, upperObj});
-		lowerObj = lowerNode->eval(scope), upperObj = upperNode->eval(scope); // Re-evaluate the limits (something may have changed)
+		lowerObj = lowerNode->eval(scope);
+		upperObj = upperNode->eval(scope); // Re-evaluate the limits (something may have changed)
 		++(*counterObj); // Increase the counter
 	}
 	cleanTmps({counterObj, lowerObj, upperObj});
@@ -100,71 +130,109 @@ Object* ForStatement::eval(Scope* scope, bool isInFunction) {
 }
 
 IfStatement::IfStatement() = default;
-IfStatement::~IfStatement() {
-	for (const auto& casePair : cases) {
-		delete casePair.first;
-		delete casePair.second;
+
+IfStatement::~IfStatement()
+{
+	for (const auto& [casePtr, blockPtr] : cases)
+	{
+		delete casePtr;
+		delete blockPtr;
 	}
 }
-IfStatement::IfStatement(ASTNode* condition, CodeBlock* block) {
+
+IfStatement::IfStatement(ASTNode* condition, CodeBlock* block)
+{
 	addCase(condition, block);
 }
-void IfStatement::addCase(ASTNode* condition, CodeBlock* block) {
-	cases.push_back(std::make_pair(condition, block));
+
+void IfStatement::addCase(ASTNode* condition, CodeBlock* block)
+{
+	cases.emplace_back(condition, block);
 }
-Object* IfStatement::eval(Scope* scope, bool isInFunction) {
-	for (const auto& casePair : cases) { // For each "case"
-		Object* caseObj = casePair.first->eval(scope); // Evaluate the condition
-		if (caseObj->isTrue()) {
-			cleanTmps({ caseObj });
-			return casePair.second->eval(scope, isInFunction); // Run the block
+
+Object* IfStatement::eval(Scope* scope, const bool isInFunction)
+{
+	for (const auto& [casePtr, blockPtr] : cases)
+	{
+		// For each "case"
+		Object* caseObj = casePtr->eval(scope); // Evaluate the condition
+		if (caseObj->isTrue())
+		{
+			cleanTmps({caseObj});
+			return blockPtr->eval(scope, isInFunction); // Run the block
 		}
-		cleanTmps({ caseObj });
+		cleanTmps({caseObj});
 	}
 	return nullptr;
 }
 
 ExprStatement::ExprStatement() = default;
-ExprStatement::~ExprStatement() {
+
+ExprStatement::~ExprStatement()
+{
 	delete exprRoot;
 }
-ExprStatement::ExprStatement(ASTNode* expr) : exprRoot(expr) {}
-Object* ExprStatement::eval(Scope* scope, bool) {
-	cleanTmps({ exprRoot->eval(scope) }); // The result of an expression is a pointer to the root, but in an expresion statement it is discarded.
+
+ExprStatement::ExprStatement(ASTNode* expr) : exprRoot(expr)
+{
+}
+
+Object* ExprStatement::eval(Scope* scope, bool)
+{
+	cleanTmps({exprRoot->eval(scope)});
+	// The result of an expression is a pointer to the root, but in an expression statement it is discarded.
 	return nullptr;
 }
 
 ReturnStatement::ReturnStatement() = default;
-ReturnStatement::~ReturnStatement() {
+
+ReturnStatement::~ReturnStatement()
+{
 	delete returnRoot;
 }
-ReturnStatement::ReturnStatement(ASTNode* expr) : returnRoot(expr) {}
-Object* ReturnStatement::eval(Scope* scope, bool isInFunction) {
-	if (!isInFunction) {
+
+ReturnStatement::ReturnStatement(ASTNode* expr) : returnRoot(expr)
+{
+}
+
+Object* ReturnStatement::eval(Scope* scope, const bool isInFunction)
+{
+	if (!isInFunction)
+	{
 		throw std::runtime_error("Return statements should only be inside functions.");
 	}
 	Object* returnObj = returnRoot->eval(scope);
-	Object* newObj = new Object;
+	const auto newObj = new Object;
 	*newObj = *returnObj;
 	cleanTmps({returnObj});
 	return newObj;
 }
 
 FunctionDefStatement::FunctionDefStatement() = default;
-FunctionDefStatement::~FunctionDefStatement() {
+
+FunctionDefStatement::~FunctionDefStatement()
+{
 	delete block;
 	delete funcID;
-	for (ASTNode* node : funcParams) {
+	for (const ASTNode* node : funcParams)
+	{
 		delete node;
 	}
 }
-FunctionDefStatement::FunctionDefStatement(ASTNode* funcID, const std::vector<ASTNode*>& funcParams, CodeBlock* block) : funcID(funcID), funcParams(funcParams), block(block) {}
-Object* FunctionDefStatement::eval(Scope* scope, bool) {
+
+FunctionDefStatement::FunctionDefStatement(ASTNode* funcID, std::vector<ASTNode*> funcParams, CodeBlock* block) :
+	funcID(funcID), funcParams(
+		std::move(funcParams)), block(block)
+{
+}
+
+Object* FunctionDefStatement::eval(Scope* scope, bool)
+{
 	*funcID->eval(scope, true) = Object(Function(block, funcParams, scope->getFuncLevel()));
 	return nullptr;
 }
-/*--------------------------------------------------------------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------------------------------------------------------------*/
 
 
 /*--------------------------------------------------------------------------------------------------------------------------------*/
@@ -174,16 +242,26 @@ void ASTNode::setForceRval(bool isIt) { forceRval = isIt; }
 Object* ASTNode::eval(Scope*, bool) { return nullptr; }
 
 nAryNode::nAryNode() = default;
-nAryNode::~nAryNode() {
+
+nAryNode::~nAryNode()
+{
 	delete mainOperand;
-	for (ASTNode* opPtr : nOperands) { delete opPtr; }
+	for (const ASTNode* opPtr : nOperands) { delete opPtr; }
 }
-nAryNode::nAryNode(ASTNode* mainOperand, OperatorType opType, std::vector<ASTNode*>& nOperands) : mainOperand(mainOperand), opType(opType), nOperands(nOperands) {}
-Object* nAryNode::eval(Scope* scope, bool) {
+
+nAryNode::nAryNode(ASTNode* mainOperand, const OperatorType opType, std::vector<ASTNode*> nOperands) : opType(opType),
+	mainOperand(mainOperand), nOperands(
+		std::move(nOperands))
+{
+}
+
+Object* nAryNode::eval(Scope* scope, bool)
+{
 	Object* result = nullptr;
 	Object* mainObject = mainOperand->eval(scope);
 	std::vector<Object*> nObjects;
-	for (ASTNode* node : nOperands) {
+	for (ASTNode* node : nOperands)
+	{
 		nObjects.push_back(node->eval(scope));
 	}
 	switch (opType)
@@ -200,14 +278,21 @@ Object* nAryNode::eval(Scope* scope, bool) {
 }
 
 BinaryNode::BinaryNode() = default;
-BinaryNode::~BinaryNode() {
+
+BinaryNode::~BinaryNode()
+{
 	delete left;
 	delete right;
 }
-BinaryNode::BinaryNode(ASTNode *l, ASTNode *r, OperatorType opType) : left(l), right(r), opType(opType) {}
-Object* BinaryNode::eval(Scope *scope, bool lSide)
+
+BinaryNode::BinaryNode(ASTNode* l, ASTNode* r, OperatorType opType) : opType(opType), left(l), right(r)
 {
-	Object* oLeft = left->eval(scope, (opType == OperatorType::ASSIGNMENT)?(true):(false)); // If we have the assignment operator, the left node should be passed with lSide=true. This allows it to be initialized if needed.
+}
+
+Object* BinaryNode::eval(Scope* scope, const bool lSide)
+{
+	Object* oLeft = left->eval(scope, (opType == OperatorType::ASSIGNMENT) ? (true) : (false));
+	// If we have the assignment operator, the left node should be passed with lSide=true. This allows it to be initialized if needed.
 	Object* oRight = right->eval(scope, lSide);
 	Object* result = nullptr;
 	if (!oLeft || !oRight) { throw std::runtime_error("Null object pointer received."); }
@@ -277,20 +362,25 @@ Object* BinaryNode::eval(Scope *scope, bool lSide)
 		throw std::runtime_error("Incompatible operator in binary AST node.");
 		break;
 	}
-	cleanTmps({ oLeft, oRight }); // Clean the temporary objects
+	cleanTmps({oLeft, oRight}); // Clean the temporary objects
 	return result;
 }
 
 UnaryNode::UnaryNode() = default;
 UnaryNode::~UnaryNode() { delete operand; }
-UnaryNode::UnaryNode(ASTNode* operand, OperatorType opType) : operand(operand), opType(opType) {}
+
+UnaryNode::UnaryNode(ASTNode* operand, const OperatorType opType) : opType(opType), operand(operand)
+{
+}
+
 Object* UnaryNode::eval(Scope* scope, bool)
 {
 	Object* obj = operand->eval(scope);
 	Object* result = nullptr;
 	if (!obj) { throw std::runtime_error("Null object pointer received."); }
 	Object tmpObj;
-	switch (opType) {
+	switch (opType)
+	{
 	case OperatorType::OUTPUT:
 		result = new Object(outputOp(*obj));
 		break;
@@ -326,31 +416,39 @@ Object* UnaryNode::eval(Scope* scope, bool)
 	cleanTmps({obj}); // Clean tmp object
 	return result;
 }
-Object& UnaryNode::outputOp(Object &obj)
+
+Object& UnaryNode::outputOp(Object& obj)
 {
 	output(obj);
 	return obj;
 }
 
 LiteralNode::LiteralNode() = default;
-LiteralNode::~LiteralNode() {
-	if (literal)
-		delete literal;
+
+LiteralNode::~LiteralNode()
+{
+	delete literal;
 }
+
 Object* LiteralNode::eval(Scope*, bool) { return new Object(*literal); }
 
 IDNode::IDNode() = default;
 IDNode::~IDNode() = default;
-IDNode::IDNode(const std::string &id) : id(id) {}
-Object* IDNode::eval(Scope *scope, bool lSide) 
+
+IDNode::IDNode(std::string id) : id(std::move(id))
+{
+}
+
+Object* IDNode::eval(Scope* scope, const bool lSide)
 {
 	Object* obj = nullptr;
-	if (!scope->checkObj(id) && lSide) // If object with set id doesn't exist, and is exactly in the left side (lSide) of an equality operator, create a new object with such id
+	if (!scope->checkObj(id) && lSide)
+		// If object with set id doesn't exist, and is exactly in the left side (lSide) of an equality operator, create a new object with such id
 		scope->addObj(Object(), id);
 	obj = scope->getObj(id);
 	if (forceRval) // If it is forced to be an rval
 		obj->setLval(false);
 	return obj;
 }
-/*--------------------------------------------------------------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------------------------------------------------------------*/

@@ -39,7 +39,7 @@ class ArrayContainer
 {
 public:
 	ArrayContainer();
-	ArrayContainer(size_t size);
+	explicit ArrayContainer(size_t size);
 	[[nodiscard]] vecOfPtrs* getVecPtr() const;
 private:
 	vecOfPtrs* vecPtr = nullptr;
@@ -49,14 +49,22 @@ class Function
 {
 public:
 	Function();
-	~Function();
-	Function(CodeBlock*, const std::vector<ASTNode*>&, int);
-	Object* eval(Scope* scope, const std::vector<Object*>& argVec);
+	Function(CodeBlock*, std::vector<ASTNode*>, int);
+	Object* eval(Scope* scope, const std::vector<Object*>& argVec) const;
 private:
-	std::vector<ASTNode*> paramVec;
 	CodeBlock* block = nullptr;
+	std::vector<ASTNode*> paramVec;
 	int definedFuncLevel = 0;
 };
+
+template <class... Ts>
+struct overload : Ts...
+{
+	using Ts::operator()...;
+};
+
+template <class... Ts>
+explicit overload(Ts ...) -> overload<Ts...>;
 
 class Object
 {
@@ -64,7 +72,7 @@ public:
 	Object();
 	explicit Object(std::string val);
 	explicit Object(int val);
-	Object(const Function&);
+	explicit Object(const Function&);
 	Object(ObjectType type, int val);
 	[[nodiscard]] ObjectType getType() const;
 	Object* getArray(size_t pos);
@@ -72,12 +80,10 @@ public:
 	void initArray(size_t size);
 	void setVal(auto val);
 	void setType(ObjectType type);
-	bool isLval() const;
+	[[nodiscard]] bool isLval() const;
 	void setLval(bool isIt);
 	VariantType data;
 
-	template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
-	template<class... Ts> overload(Ts...)->overload<Ts...>;
 
 	Object& operator=(const Object&);
 	Object& operator+=(Object&);
@@ -94,8 +100,8 @@ public:
 	Object& operator--();
 	Object operator++(int);
 	Object operator--(int);
-	Object operator-();
-	Object operator+();
+	Object operator-() const;
+	Object operator+() const;
 	Object operator!();
 	friend Object operator<(Object&, Object&);
 	friend Object operator>(Object&, Object&);
@@ -118,32 +124,36 @@ private:
 class ObjKey
 {
 public:
-	ObjKey() = default;
-	ObjKey(int scopeLevel, int funcLevel, const std::string& ID) : scopeLevel(scopeLevel), funcLevel(funcLevel), ID(ID) {}
+	ObjKey();
+	ObjKey(const int, const int, std::string);
 	int scopeLevel = 0;
 	int funcLevel = 0;
-	std::string ID = "";
-	bool operator<(const ObjKey& rhs) const {
+	std::string ID;
+
+	bool operator<(const ObjKey& rhs) const
+	{
 		return std::tie(scopeLevel, ID) < std::tie(rhs.scopeLevel, rhs.ID);
 	}
 };
+
 using ObjMap = std::map<ObjKey, Object*>;
+
 class Scope
 {
 public:
 	Scope();
 	const ObjMap& getMap();
-	int getLevel();
-	int getFuncLevel();
+	[[nodiscard]] int getLevel() const;
+	[[nodiscard]] int getFuncLevel() const;
 	void incLevel();
 	void incFuncLevel();
 	void decrLevel();
 	void decrFuncLevel();
 	void addObj(const Object& obj, const std::string& id);
 	Object* getObj(const std::string& id);
-	bool checkObj(const std::string& id) const;
+	[[nodiscard]] bool checkObj(const std::string& id) const;
 
-	void printScope();
+	void printScope() const;
 private:
 	ObjMap scopeMap;
 	int scopeLevel = 0;
