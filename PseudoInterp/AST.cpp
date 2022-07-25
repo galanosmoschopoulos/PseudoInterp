@@ -1,7 +1,7 @@
 #include "AST.h"
 #include <stdexcept>
 
-inline static Object& checkLval(const Object& obj)
+static Object& checkLval(const Object& obj)
 {
 	if (!obj.isLval()) // We have to ensure that lhs is an lVal. I.e. (x + 5) = 2 is invalid, but x = 2 is valid
 	{
@@ -71,8 +71,9 @@ WhileStatement::~WhileStatement()
 	delete block;
 }
 
-WhileStatement::WhileStatement(ASTNode* condition, CodeBlock* block) : condition(condition), block(block)
+WhileStatement::WhileStatement(ASTNode* condition, CodeBlock* block, size_t position) : condition(condition), block(block)
 {
+	pos = position;
 }
 
 Object* WhileStatement::eval(Scope* scope, const bool isInFunction)
@@ -99,9 +100,10 @@ ForStatement::~ForStatement()
 	delete block;
 }
 
-ForStatement::ForStatement(ASTNode* counterNode, ASTNode* lowerNode, ASTNode* upperNode, CodeBlock* block) :
+ForStatement::ForStatement(ASTNode* counterNode, ASTNode* lowerNode, ASTNode* upperNode, CodeBlock* block, size_t position) :
 	counterNode(counterNode), lowerNode(lowerNode), upperNode(upperNode), block(block)
 {
+	pos = position;
 }
 
 Object* ForStatement::eval(Scope* scope, const bool isInFunction)
@@ -140,8 +142,14 @@ IfStatement::~IfStatement()
 	}
 }
 
-IfStatement::IfStatement(ASTNode* condition, CodeBlock* block)
+IfStatement::IfStatement(size_t position)
 {
+	pos = position;
+}
+
+IfStatement::IfStatement(ASTNode* condition, CodeBlock* block, size_t position)
+{
+	pos = position;
 	addCase(condition, block);
 }
 
@@ -173,8 +181,9 @@ ExprStatement::~ExprStatement()
 	delete exprRoot;
 }
 
-ExprStatement::ExprStatement(ASTNode* expr) : exprRoot(expr)
+ExprStatement::ExprStatement(ASTNode* expr, size_t position) : exprRoot(expr)
 {
+	pos = position;
 }
 
 Object* ExprStatement::eval(Scope* scope, bool)
@@ -191,8 +200,9 @@ ReturnStatement::~ReturnStatement()
 	delete returnRoot;
 }
 
-ReturnStatement::ReturnStatement(ASTNode* expr) : returnRoot(expr)
+ReturnStatement::ReturnStatement(ASTNode* expr, size_t position) : returnRoot(expr)
 {
+	pos = position;
 }
 
 Object* ReturnStatement::eval(Scope* scope, const bool isInFunction)
@@ -220,10 +230,11 @@ FunctionDefStatement::~FunctionDefStatement()
 	}
 }
 
-FunctionDefStatement::FunctionDefStatement(ASTNode* funcID, std::vector<ASTNode*> funcParams, CodeBlock* block) :
+FunctionDefStatement::FunctionDefStatement(ASTNode* funcID, std::vector<ASTNode*> funcParams, CodeBlock* block, size_t position) :
 	funcID(funcID), funcParams(
 		std::move(funcParams)), block(block)
 {
+	pos = position;
 }
 
 Object* FunctionDefStatement::eval(Scope* scope, bool)
@@ -249,10 +260,11 @@ nAryNode::~nAryNode()
 	for (const ASTNode* opPtr : nOperands) { delete opPtr; }
 }
 
-nAryNode::nAryNode(ASTNode* mainOperand, const OperatorType opType, std::vector<ASTNode*> nOperands) : opType(opType),
+nAryNode::nAryNode(ASTNode* mainOperand, const OperatorType opType, std::vector<ASTNode*> nOperands, size_t position) : opType(opType),
 	mainOperand(mainOperand), nOperands(
 		std::move(nOperands))
 {
+	pos = position;
 }
 
 Object* nAryNode::eval(Scope* scope, bool)
@@ -267,6 +279,7 @@ Object* nAryNode::eval(Scope* scope, bool)
 	switch (opType)
 	{
 	case OperatorType::SUBSCRIPT:
+		result = (*mainObject)[nObjects];
 		break;
 	case OperatorType::FUNCTION_CALL:
 		result = (*mainObject)(scope, nObjects);
@@ -285,8 +298,9 @@ BinaryNode::~BinaryNode()
 	delete right;
 }
 
-BinaryNode::BinaryNode(ASTNode* l, ASTNode* r, OperatorType opType) : opType(opType), left(l), right(r)
+BinaryNode::BinaryNode(ASTNode* l, ASTNode* r, OperatorType opType, size_t position) : opType(opType), left(l), right(r)
 {
+	pos = position;
 }
 
 Object* BinaryNode::eval(Scope* scope, const bool lSide)
@@ -369,8 +383,9 @@ Object* BinaryNode::eval(Scope* scope, const bool lSide)
 UnaryNode::UnaryNode() = default;
 UnaryNode::~UnaryNode() { delete operand; }
 
-UnaryNode::UnaryNode(ASTNode* operand, const OperatorType opType) : opType(opType), operand(operand)
+UnaryNode::UnaryNode(ASTNode* operand, const OperatorType opType, size_t position) : opType(opType), operand(operand)
 {
+	pos = position;
 }
 
 Object* UnaryNode::eval(Scope* scope, bool)
@@ -419,7 +434,7 @@ Object* UnaryNode::eval(Scope* scope, bool)
 
 Object& UnaryNode::outputOp(Object& obj)
 {
-	output(obj);
+	std::cout << obj.toStr() << '\n';
 	return obj;
 }
 
@@ -435,10 +450,10 @@ Object* LiteralNode::eval(Scope*, bool) { return new Object(*literal); }
 IDNode::IDNode() = default;
 IDNode::~IDNode() = default;
 
-IDNode::IDNode(std::string id) : id(std::move(id))
+IDNode::IDNode(std::string id, size_t position) : id(std::move(id))
 {
+	pos = position;
 }
-
 Object* IDNode::eval(Scope* scope, const bool lSide)
 {
 	Object* obj = nullptr;
@@ -446,6 +461,10 @@ Object* IDNode::eval(Scope* scope, const bool lSide)
 		// If object with set id doesn't exist, and is exactly in the left side (lSide) of an equality operator, create a new object with such id
 		scope->addObj(Object(), id);
 	obj = scope->getObj(id);
+	if(!obj)
+	{
+		throw std::runtime_error("Object with identifier \'"+id+"\' does not exist in scope. " + std::to_string(pos));
+	}
 	if (forceRval) // If it is forced to be an rval
 		obj->setLval(false);
 	return obj;

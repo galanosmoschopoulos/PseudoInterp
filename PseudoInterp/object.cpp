@@ -1,18 +1,74 @@
-#include "objects.h"
+#include "object.h"
 #include <iostream>
 #include <stdexcept>
+template <class... Ts>
+struct overload : Ts...
+{
+	using Ts::operator()...;
+};
+
+template <class... Ts>
+explicit overload(Ts ...) -> overload<Ts...>;
 
 ArrayContainer::ArrayContainer() = default;
 
-ArrayContainer::ArrayContainer(const size_t size)
+ArrayContainer::ArrayContainer(const std::vector<Object*>& dimVec)
 {
-	vecPtr = new vecOfPtrs(size);
+	if (dimVec.empty())
+		throw std::runtime_error("Subscript indices must be positive integers.");
+	size_t currSize = 0;
+	std::visit(overload{
+		           [&currSize](int& size)
+		           {
+					   if (size > 0) currSize = size;
+					   else throw std::runtime_error("Array size parameters must be positive integers.");
+		           },
+		           [](auto&) { throw std::runtime_error("Array size parameters must be positive integers."); }
+	           }, dimVec[0]->data);
+
+	vecPtr = new vecOfPtrs(currSize);
+	if (dimVec.size() == 1)
+	{
+		for(size_t i = 0; i != currSize; i++)
+		{
+			const auto objPtr = new Object();
+			objPtr->setLval(true);
+			(*vecPtr)[i].reset(objPtr);
+		}
+	}
+	else {
+		for (size_t i = 0; i != currSize; i++)
+		{
+			const auto objPtr = new Object(ArrayContainer(std::vector<Object*>(dimVec.begin() + 1, dimVec.end())));
+			objPtr->setLval(true);
+			(*vecPtr)[i].reset(objPtr);
+		}
+	}
 }
 
-vecOfPtrs* ArrayContainer::getVecPtr() const
+Object* ArrayContainer::getArray(const std::vector<Object*>& idxVec) const
 {
-	return vecPtr;
+	if (idxVec.empty())
+		throw std::runtime_error("Subscript indices must be non-negative integers.");
+	size_t currIdx = 0;
+	std::visit(overload{
+		           [&currIdx](int& idx)
+		           {
+					   if (idx >= 0) currIdx = idx;
+					   else throw std::runtime_error("Subscript indices must be non-negative integers.");
+		           },
+		           [](auto&) { throw std::runtime_error("Subscript indices must be non-negative integers."); }
+	           }, idxVec[0]->data);
+
+	if (currIdx >= vecPtr->size())
+		throw std::runtime_error("Array subscript out of range.");
+	if (idxVec.size() == 1)
+		return (*vecPtr)[currIdx].get(); // Convert std::shared_ptr to raw pointer
+	else
+		return (*(*vecPtr)[currIdx])[std::vector<Object*>(idxVec.begin()+1, idxVec.end())];
 }
+
+
 
 Function::Function(CodeBlock* block, std::vector<ASTNode*> params, const int level) : block(block), paramVec(
 	std::move(params)), definedFuncLevel(level)
@@ -25,19 +81,32 @@ Object* Function::eval(Scope* scope, const std::vector<Object*>& argVec) const
 	if (argVec.size() != paramVec.size())
 		throw std::runtime_error("Wrong number of arguments");
 
-	scope->incLevel();
+	Scope* newScope = scope->getRestricted(definedFuncLevel);
+
+	newScope->incLevel();
+	newScope->incFuncLevel();
 
 	Object* funcResult = nullptr;
-	for (int i = 0; i != argVec.size(); i++)
+	for (size_t i = 0; i != argVec.size(); i++)
 	{
-		*paramVec[i]->eval(scope, true) = *argVec[i];
+		*paramVec[i]->eval(newScope, true) = *argVec[i];
 	}
-	funcResult = block->eval(scope, true);
+	funcResult = block->eval(newScope, true);
 	if (funcResult == nullptr) funcResult = new Object;
-	scope->decrLevel();
+
+	newScope->decrLevel();
+	newScope->decrFuncLevel();
+	delete newScope;
 	return funcResult;
 }
 
+
+ArrayConstructor::ArrayConstructor() = default;
+
+Object* ArrayConstructor::eval(const std::vector<Object*>& argVec) const
+{
+	return new Object(ArrayContainer(argVec));
+}
 
 Object::Object() = default;
 
@@ -53,94 +122,22 @@ Object::Object(int val)
 	data = val;
 }
 
-Object::Object(const ObjectType type, int val)
-{
-	currentType = type;
-	data = val;
-	if (type == ObjectType::ARR)
-	{
-		initArray(val);
-	}
-}
-
 Object::Object(const Function& function)
 {
 	currentType = ObjectType::FUNC;
 	data = function;
 }
 
-ObjectType Object::getType() const
+Object::Object(const ArrayContainer& array_container)
 {
-	return currentType;
+	currentType = ObjectType::ARR;
+	data = array_container;
 }
 
-void Object::setType(const ObjectType type)
+Object::Object(const ArrayConstructor& array_constructor)
 {
-	currentType = type;
-} /*
-void Object::traceType()
-{
-	traceTypeRecursive(*this);
-}
-void Object::traceTypeRecursive(Object &obj)
-{
-	typeSeq.push_back(obj.getType());
-	if (obj.getType() == ObjectType::ARR)
-	{
-		if (obj.getArrayContainer().getVecPtr()->empty())
-		{
-			typeSeq.push_back(obj.getArrayContainer().getContainedType());
-		}
-		else
-		{
-			traceTypeRecursive(*(*obj.getArrayContainer().getVecPtr())[0]);
-			//Assumes that the 0th element will have an object to trace... this is bad
-		}
-	}
-}*/
-void Object::initArray(const size_t size)
-{
-	if (getType() != ObjectType::ARR)
-	{
-		throw std::runtime_error("This object is not an array.");
-	}
-	data = ArrayContainer(size);
-	for (size_t i = 0; i != size; i++)
-	{
-		(*getArrayContainer().getVecPtr())[i].reset(new Object);
-	}
-}
-
-void Object::setArray(const Object& obj, const size_t pos) // Will not be useful, just for testing purposes
-{
-	if (getType() != ObjectType::ARR)
-	{
-		throw std::runtime_error("This object is not an array.");
-	}
-	if (pos >= getArrayContainer().getVecPtr()->size())
-	{
-		throw std::runtime_error("Array subscript out of range.");
-		return;
-	}
-	(*getArrayContainer().getVecPtr())[pos].reset(new Object(obj));
-}
-
-Object* Object::getArray(const size_t pos)
-{
-	if (currentType != ObjectType::ARR)
-	{
-		throw std::runtime_error("Object not array");
-	}
-	if (getType() != ObjectType::ARR)
-	{
-		throw std::runtime_error("This object is not an array.");
-	}
-	if (pos >= getArrayContainer().getVecPtr()->size())
-	{
-		throw std::runtime_error("Array subscript out of range.");
-	}
-
-	return (*getArrayContainer().getVecPtr())[pos].get(); // Convert std::shared_ptr to raw pointer
+	currentType = ObjectType::ARRAY_CONSTRUCTOR;
+	data = array_constructor;
 }
 
 ArrayContainer& Object::getArrayContainer()
@@ -148,11 +145,6 @@ ArrayContainer& Object::getArrayContainer()
 	return std::get<ArrayContainer>(data);
 }
 
-void Object::setVal(auto val)
-{
-	data = val;
-	int x;
-}
 
 bool Object::isLval() const
 {
@@ -163,6 +155,7 @@ void Object::setLval(const bool isIt)
 {
 	lval = isIt;
 }
+
 
 Object& Object::operator=(const Object& obj2)
 {
@@ -395,103 +388,37 @@ bool Object::isTrue()
 	return result;
 }
 
+std::string Object::toStr()
+{
+	std::string result;
+	std::visit(overload{
+				   [&result](int& x) { result = std::to_string(x); },
+		           [&result](std::string& x) { result = x; },
+				   [&result](auto&) { result = "Object does not have a string representation."; }
+	           }, data);
+
+	return result;
+}
+
 Object* Object::operator()(Scope* scope, const std::vector<Object*>& argVec)
 {
 	Object* result = nullptr;
 	std::visit(overload{
 		           [&result, &scope, &argVec](Function& func) { result = func.eval(scope, argVec); },
-		           [](auto&) { throw std::runtime_error("Not a function."); }
+		           [&result, &argVec](ArrayConstructor& array_constructor) { result = array_constructor.eval(argVec); },
+		           [](auto&) { throw std::runtime_error("Not a callable object."); }
 	           }, this->data);
 	return result;
 }
 
-ObjKey::ObjKey() = default;
-
-ObjKey::ObjKey(const int scopeLevel, const int funcLevel, std::string ID) : scopeLevel(scopeLevel),
-                                                                            funcLevel(funcLevel), ID(std::move(ID))
+Object* Object::operator[](const std::vector<Object*>& indexVec)
 {
+	Object* result = nullptr;
+	std::visit(overload{
+		           [&result, &indexVec](ArrayContainer& array_container) { result = array_container.getArray(indexVec); },
+		           [](auto&) { throw std::runtime_error("Not an array."); }
+	           }, this->data);
+	return result;
+
 }
 
-Scope::Scope() = default;
-
-const ObjMap& Scope::getMap()
-{
-	return scopeMap;
-}
-
-int Scope::getLevel() const { return scopeLevel; }
-int Scope::getFuncLevel() const { return funcLevel; }
-void Scope::incLevel() { scopeLevel++; }
-void Scope::incFuncLevel() { funcLevel++; }
-void Scope::decrFuncLevel() { funcLevel--; }
-
-void Scope::decrLevel()
-{
-	if (scopeLevel == 0)
-	{
-		throw std::runtime_error("Scope level cannot be negative.");
-	}
-	std::vector<ObjKey> toBeDeleted;
-	for (auto itr = scopeMap.rbegin(); itr != scopeMap.rend(); ++itr)
-	{
-		if (itr->first.scopeLevel == scopeLevel)
-		{
-			toBeDeleted.push_back(itr->first);
-		}
-	}
-	for (const auto& x : toBeDeleted)
-	{
-		scopeMap.erase(x);
-	}
-	scopeLevel--;
-}
-
-void Scope::addObj(const Object& obj, const std::string& id)
-{
-	scopeMap[ObjKey(scopeLevel, funcLevel, id)] = new Object(obj);
-	scopeMap[ObjKey(scopeLevel, funcLevel, id)]->setLval(true);
-}
-
-Object* Scope::getObj(const std::string& id)
-{
-	for (auto itr = scopeMap.rbegin(); itr != scopeMap.rend(); ++itr)
-	{
-		if (itr->first.ID == id)
-		{
-			return itr->second;
-		}
-	}
-	throw std::runtime_error("Object with identifier \"" + id + "\" does not exist.");
-}
-
-bool Scope::checkObj(const std::string& id) const
-{
-	return scopeMap.contains(ObjKey(scopeLevel, funcLevel, id));
-}
-
-void Scope::printScope() const
-{
-	for (std::pair<ObjKey, Object*> x : scopeMap)
-	{
-		std::cout << "[ID: " << x.first.ID << ", Level: " << x.first.scopeLevel << "]\n";
-	}
-}
-
-void output(const Object& obj)
-{
-	switch (obj.getType())
-	{
-	case ObjectType::INT:
-		std::cout << std::get<int>(obj.data) << std::endl;
-		break;
-	case ObjectType::STR:
-		std::cout << std::get<std::string>(obj.data) << std::endl;
-		break;
-	case ObjectType::ARR: break;
-
-	case ObjectType::FUNC:
-	case ObjectType::UNDEFINED:
-		throw std::runtime_error("Object of type " + typeString[obj.getType()] + " is not printable.");
-		break;
-	}
-}

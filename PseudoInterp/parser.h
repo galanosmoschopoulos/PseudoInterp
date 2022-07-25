@@ -41,9 +41,10 @@ enum class OperatorType
 };
 
 #include <map>
-#include "objects.h"
+#include "object.h"
 #include "lexer.h"
 #include "AST.h"
+#include "scope.h"
 
 class CodeBlock;
 class Statement;
@@ -68,8 +69,8 @@ private:
 	// Each precedence group consists of a map linking tokens to their corresponding operators, and a pointer to a function to parse those operators
 	struct precedenceGroup
 	{
-		std::map<TokenType, OperatorType> findOp;
-		ASTNode* (Parser::* parserFunc)(precedenceGroup*);
+		std::map<TokenType, OperatorType> findOp{};
+		ASTNode* (Parser::* parserFunc)(precedenceGroup*){};
 	};
 
 	precedenceGroup precedenceTab[MAX_GROUPS] = {
@@ -177,5 +178,6 @@ private:
 	int blockLevel = -1;
 	// Each block increases this by one. So if the main block (which contains everything) is level 0, then blockLevel is initially -1.
 	bool lessTabs(int&);
-	static std::string getParsingError(const std::string& customMessage = "");
+	void checkNewLine();
+	std::string getParsingError(const std::string& customMessage = "", int offset = 0);
 };

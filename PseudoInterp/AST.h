@@ -1,6 +1,7 @@
 #pragma once
-#include "objects.h"
+#include "object.h"
 #include "parser.h"
+#include "scope.h"
 #include <stdexcept>
 #include <vector>
 #include <initializer_list>
@@ -23,7 +24,7 @@ public:
 	Object* eval(Scope*, bool isInFunction) const;
 	void addStatement(Statement*);
 private:
-	std::vector<Statement*> statementVec;
+	std::vector<Statement*> statementVec{};
 };
 
 class Statement
@@ -32,6 +33,9 @@ public:
 	Statement();
 	virtual ~Statement();
 	virtual Object* eval(Scope*, bool isInFunction);
+protected:
+	size_t pos = 0;
+
 };
 
 class IfStatement final : public Statement
@@ -39,11 +43,12 @@ class IfStatement final : public Statement
 public:
 	IfStatement();
 	~IfStatement() override;
-	IfStatement(ASTNode*, CodeBlock*);
+	explicit IfStatement(size_t);
+	IfStatement(ASTNode*, CodeBlock*, size_t);
 	Object* eval(Scope*, bool isInFunction) override;
 	void addCase(ASTNode*, CodeBlock*);
 private:
-	std::vector<std::pair<ASTNode*, CodeBlock*>> cases;
+	std::vector<std::pair<ASTNode*, CodeBlock*>> cases{};
 };
 
 class WhileStatement final : public Statement
@@ -51,7 +56,7 @@ class WhileStatement final : public Statement
 public:
 	WhileStatement();
 	~WhileStatement() override;
-	WhileStatement(ASTNode*, CodeBlock*);
+	WhileStatement(ASTNode*, CodeBlock*, size_t);
 	Object* eval(Scope*, bool isInFunction) override;
 private:
 	ASTNode* condition = nullptr;
@@ -63,7 +68,7 @@ class ForStatement final : public Statement
 public:
 	ForStatement();
 	~ForStatement() override;
-	ForStatement(ASTNode*, ASTNode*, ASTNode*, CodeBlock*);
+	ForStatement(ASTNode*, ASTNode*, ASTNode*, CodeBlock*, size_t);
 	Object* eval(Scope*, bool isInFunction) override;
 private:
 	ASTNode* counterNode = nullptr;
@@ -77,7 +82,7 @@ class ExprStatement final : public Statement
 public:
 	ExprStatement();
 	~ExprStatement() override;
-	explicit ExprStatement(ASTNode*);
+	ExprStatement(ASTNode*, size_t);
 	Object* eval(Scope*, bool isInFunction) override;
 private:
 	ASTNode* exprRoot = nullptr;
@@ -88,7 +93,7 @@ class ReturnStatement final : public Statement
 public:
 	ReturnStatement();
 	~ReturnStatement() override;
-	explicit ReturnStatement(ASTNode*);
+	ReturnStatement(ASTNode*, size_t);
 	Object* eval(Scope*, bool isInFunction) override;
 private:
 	ASTNode* returnRoot = nullptr;
@@ -99,11 +104,11 @@ class FunctionDefStatement final : public Statement
 public:
 	FunctionDefStatement();
 	~FunctionDefStatement() override;
-	FunctionDefStatement(ASTNode*, std::vector<ASTNode*>, CodeBlock*);
+	FunctionDefStatement(ASTNode*, std::vector<ASTNode*>, CodeBlock*, size_t);
 	Object* eval(Scope*, bool) override;
 private:
 	ASTNode* funcID = nullptr;
-	std::vector<ASTNode*> funcParams;
+	std::vector<ASTNode*> funcParams{};
 	CodeBlock* block = nullptr;
 };
 
@@ -117,6 +122,7 @@ public:
 	void setForceRval(bool);
 protected:
 	bool forceRval = false;
+	size_t pos = 0;
 };
 
 class nAryNode final : public ASTNode
@@ -124,12 +130,12 @@ class nAryNode final : public ASTNode
 public:
 	nAryNode();
 	~nAryNode() override;
-	nAryNode(ASTNode*, OperatorType, std::vector<ASTNode*>);
+	nAryNode(ASTNode*, OperatorType, std::vector<ASTNode*>, size_t);
 	Object* eval(Scope* scope, bool lSide = false) override;
 private:
 	OperatorType opType = OperatorType::UNKNOWN;
 	ASTNode* mainOperand = nullptr;
-	std::vector<ASTNode*> nOperands;
+	std::vector<ASTNode*> nOperands{};
 };
 
 class BinaryNode final : public ASTNode
@@ -137,7 +143,7 @@ class BinaryNode final : public ASTNode
 public:
 	BinaryNode();
 	~BinaryNode() override;
-	BinaryNode(ASTNode*, ASTNode*, OperatorType);
+	BinaryNode(ASTNode*, ASTNode*, OperatorType, size_t);
 	Object* eval(Scope*, bool lSide = false) override;
 private:
 	OperatorType opType = OperatorType::UNKNOWN;
@@ -152,8 +158,9 @@ public:
 	LiteralNode();
 	~LiteralNode() override;
 
-	explicit LiteralNode(auto val) : literal(new Object(val))
+	explicit LiteralNode(auto val, size_t position) : literal(new Object(val))
 	{
+		pos = position;
 	}
 
 	Object* eval(Scope*, bool lSide = false) override;
@@ -166,7 +173,7 @@ class IDNode final : public ASTNode
 public:
 	IDNode();
 	~IDNode() override;
-	explicit IDNode(std::string);
+	IDNode(std::string, size_t);
 	Object* eval(Scope*, bool lSide = false) override;
 private:
 	std::string id;
@@ -177,7 +184,7 @@ class UnaryNode final : public ASTNode
 public:
 	UnaryNode();
 	~UnaryNode() override;
-	UnaryNode(ASTNode*, OperatorType);
+	UnaryNode(ASTNode*, OperatorType, size_t);
 	Object* eval(Scope*, bool lSide = false) override;
 private:
 	static Object& outputOp(Object& obj);

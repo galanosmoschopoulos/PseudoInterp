@@ -143,15 +143,17 @@
   <ItemGroup>
     <ClCompile Include="AST.cpp" />
     <ClCompile Include="lexer.cpp" />
-    <ClCompile Include="objects.cpp" />
+    <ClCompile Include="object.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="PseudoInterp.cpp" />
+    <ClCompile Include="scope.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AST.h" />
     <ClInclude Include="lexer.h" />
-    <ClInclude Include="objects.h" />
+    <ClInclude Include="object.h" />
     <ClInclude Include="parser.h" />
+    <ClInclude Include="scope.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

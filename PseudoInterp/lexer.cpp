@@ -37,7 +37,7 @@ std::string Lexer::preprocessStr(const std::string& initStr)
 			// If the string contains graphic characters (i.e. not just spaces)
 			subStr.erase(subStr.find_last_not_of(whitespaces) + 1);
 			finalStr += subStr + "\n"; // Add to new string
-			subStrVec.push_back(subStr);
+			subStrVec.push_back(subStr + '\n');
 			sumOfDeletedStrs.push_back(deletedLines);
 		}
 		else deletedLines++;
@@ -75,9 +75,18 @@ void Lexer::lexInput()
 		if (foundFixedToken) continue;
 		if (isdigit(str[i])) // If it starts with a digit
 		{
+			TokenType tType = TokenType::INT_LIT;
 			while (isdigit(str[i]) && i < str.size()) // Store all continuous digits
 				tmpLexeme.push_back(str[i++]);
-			tokenList.emplace_back(tmpLexeme, TokenType::INT_LIT, i - tmpLexeme.size()); // Add a num literal token
+			if(str[i] == '.')
+			{
+				tType = TokenType::FLOAT_LIT;
+				tmpLexeme.push_back(str[i++]);
+			}
+			while (isdigit(str[i]) && i < str.size()) // Store all continuous digits
+				tmpLexeme.push_back(str[i++]);
+
+			tokenList.emplace_back(tmpLexeme, tType, i - tmpLexeme.size()); // Add a num literal token
 		}
 		else if (isalpha(str[i]) || str[i] == '_') // If it starts with letter or _
 		{
@@ -85,6 +94,7 @@ void Lexer::lexInput()
 				tmpLexeme.push_back(str[i++]);
 			tokenList.emplace_back(tmpLexeme, TokenType::ID, i - tmpLexeme.size()); // Add identifier token
 		}
+
 		else if (isspace(str[i]))
 		{
 			for (; isspace(str[i]) && i < str.size(); i++); // Whitespaces are ignored
@@ -92,9 +102,43 @@ void Lexer::lexInput()
 		else
 		{
 			tokenList.emplace_back(std::string(1, str[i]), TokenType::UNKNOWN, i);
+			++i;
 			// If it doesn't match the above, there's a problem
 		}
 	}
+}
+
+std::string Lexer::getErrorLine(size_t errPos, int offset) const
+{
+	errPos += offset;
+	std::stringstream ss;
+	size_t currLen = 0, nlines = 0, posInLine = 0;
+	for(const auto& str : subStrVec)
+	{
+		if (currLen + str.size() <= errPos)
+		{
+			currLen += str.size();
+			nlines++;
+		}
+		else
+		{
+			posInLine =  errPos - currLen;
+			break;
+		}
+	}
+	if (nlines >= subStrVec.size()) {
+		nlines = subStrVec.size() - 1;
+		posInLine = subStrVec.rbegin()->size() - 1;
+	}
+	else if (posInLine >= subStrVec[nlines].size()) posInLine = subStrVec[nlines].size() - 1;
+
+	ss << "Line: " << nlines + sumOfDeletedStrs[nlines] + 1 << '\n';
+	std::string s = subStrVec[nlines];
+	std::ranges::replace(s.begin(), s.end(), '\t', ' ');
+	ss << s;
+	for (size_t i = 0; i < posInLine; ++i) ss << ' ';
+	ss << "^";
+	return ss.str();
 }
 
 TokenDescriptor::TokenDescriptor() = default;

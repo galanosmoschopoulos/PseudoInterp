@@ -42,6 +42,7 @@ enum class TokenType
 	LSHFT,
 	RSHFT,
 	INT_LIT,
+	FLOAT_LIT,
 	ID,
 	WHSPACE,
 	TAB,
@@ -94,6 +95,7 @@ public:
 	Token lookForw(size_t);
 	void scanToken();
 	void lexInput();
+	std::string getErrorLine(size_t, int offset = 0) const;
 private:
 	std::vector<Token> tokenList;
 	size_t tokenListIndex = 0;

@@ -82,17 +82,25 @@ bool Parser::lessTabs(int& i)
 	return false;
 }
 
+void Parser::checkNewLine()
+{
+	if (lexer.getCurrToken().getType() != TokenType::NEWLINE) // If it doesn't end in newline, something's wrong
+		throw std::runtime_error(getParsingError("newline expected"));
+	lexer.scanToken();
+}
+
 Statement* Parser::parseFunctionDef()
 {
 	// Follows the grammar: function ID(ID, ID, ..., ID)\nBLOCK
+	const size_t pos = lexer.getCurrToken().getPos();
 	lexer.scanToken();
 	if (lexer.getCurrToken().getType() != TokenType::ID)
-		throw std::runtime_error(getParsingError());
-	ASTNode* funcIdNode = new IDNode(lexer.getCurrToken().getLexeme());
+		throw std::runtime_error(getParsingError("token is not an identifier"));
+	ASTNode* funcIdNode = new IDNode(lexer.getCurrToken().getLexeme(), lexer.getCurrToken().getPos());
 	lexer.scanToken();
 
 	if (lexer.getCurrToken().getType() != TokenType::L_PAREN)
-		throw std::runtime_error(getParsingError());
+		throw std::runtime_error(getParsingError("( expected"));
 
 	std::vector<ASTNode*> paramVec;
 	if (lexer.lookForw(1).getType() != TokenType::R_PAREN)
@@ -101,8 +109,8 @@ Statement* Parser::parseFunctionDef()
 		{
 			lexer.scanToken();
 			if (lexer.getCurrToken().getType() != TokenType::ID)
-				throw std::runtime_error(getParsingError());
-			paramVec.push_back(new IDNode(lexer.getCurrToken().getLexeme()));
+				throw std::runtime_error(getParsingError("token is not an identifier"));
+			paramVec.push_back(new IDNode(lexer.getCurrToken().getLexeme(), lexer.getCurrToken().getPos()));
 			lexer.scanToken();
 		}
 		while (lexer.getCurrToken().getType() == TokenType::COMMA);
@@ -110,32 +118,25 @@ Statement* Parser::parseFunctionDef()
 	else lexer.scanToken();
 
 	if (lexer.getCurrToken().getType() != TokenType::R_PAREN)
-		throw std::runtime_error(getParsingError());
+		throw std::runtime_error(getParsingError(") expected - matching parentheses not found"));
 	lexer.scanToken();
-	if (lexer.getCurrToken().getType() != TokenType::NEWLINE) // If it doesn't end in newline, something's wrong
-		throw std::runtime_error(getParsingError());
-	lexer.scanToken();
-
+	checkNewLine();
 	CodeBlock* block = parseBlock();
-	return new FunctionDefStatement(funcIdNode, paramVec, block);
+	return new FunctionDefStatement(funcIdNode, paramVec, block, pos);
 }
 
 Statement* Parser::parseReturn()
 {
+	const size_t pos = lexer.getCurrToken().getPos();
 	lexer.scanToken();
-	Statement* returnStatement = new ReturnStatement((this->*precedenceTab[0].parserFunc)(precedenceTab));
-	if (lexer.getCurrToken().getType() == TokenType::NEWLINE)
-	{
-		// If it doesn't end in newline, something's wrong
-		lexer.scanToken();
-	}
-	else throw std::runtime_error(getParsingError());
+	Statement* returnStatement = new ReturnStatement((this->*precedenceTab[0].parserFunc)(precedenceTab), pos);
+	checkNewLine();
 	return returnStatement;
 }
 
 Statement* Parser::parseIf()
 {
-	const auto statement = new IfStatement();
+	const auto statement = new IfStatement(lexer.getCurrToken().getPos());
 	TokenType currToken;
 	while ((currToken = lexer.getCurrToken().getType()) == TokenType::IF || currToken == TokenType::ELIF || currToken ==
 		TokenType::ELSE)
@@ -151,15 +152,10 @@ Statement* Parser::parseIf()
 		}
 		else
 		{
-			condition = new LiteralNode(1); // Always true
+			condition = new LiteralNode(1, 0); // Always true
 		}
 
-		if (lexer.getCurrToken().getType() == TokenType::NEWLINE)
-		{
-			// If it doesn't end in newline, something's wrong
-			lexer.scanToken();
-		}
-		else throw std::runtime_error(getParsingError());
+		checkNewLine();
 
 		CodeBlock* block = parseBlock(); // Parse block and add it
 		statement->addCase(condition, block);
@@ -183,31 +179,25 @@ Statement* Parser::parseIf()
 
 Statement* Parser::parseExpr()
 {
-	Statement* exprStatement = new ExprStatement((this->*precedenceTab[0].parserFunc)(precedenceTab));
-	if (lexer.getCurrToken().getType() == TokenType::NEWLINE)
-	{
-		// If it doesn't end in newline, something's wrong
-		lexer.scanToken();
-	}
-	else throw std::runtime_error(getParsingError());
+	const size_t pos = lexer.getCurrToken().getPos();
+	Statement* exprStatement = new ExprStatement((this->*precedenceTab[0].parserFunc)(precedenceTab), pos);
+	checkNewLine();
 	return exprStatement;
 }
 
 Statement* Parser::parseWhile()
 {
+	const size_t pos = lexer.getCurrToken().getPos();
 	lexer.scanToken();
 	ASTNode* condition = (this->*precedenceTab[0].parserFunc)(precedenceTab); // Get the condition expression
-	if (lexer.getCurrToken().getType() == TokenType::NEWLINE)
-	{
-		lexer.scanToken();
-	}
-	else throw std::runtime_error(getParsingError());
+	checkNewLine();
 	CodeBlock* block = parseBlock(); // Get the block
-	return new WhileStatement(condition, block);
+	return new WhileStatement(condition, block, pos);
 }
 
 Statement* Parser::parseFor()
 {
+	const size_t pos = lexer.getCurrToken().getPos();
 	lexer.scanToken();
 	ASTNode* counterNode = (this->*precedenceTab[0].parserFunc)(precedenceTab);
 	// This is the dummy counter variable of the loop
@@ -217,7 +207,7 @@ Statement* Parser::parseFor()
 		// Check if the limits are separated by 'from' and 'to'
 		lexer.scanToken();
 	}
-	else throw std::runtime_error("For loop limit separators syntax error");
+	else throw std::runtime_error(getParsingError("\'from\' - lower limit delimiter expected"));
 
 	ASTNode* lowerNode = (this->*precedenceTab[0].parserFunc)(precedenceTab);
 
@@ -225,18 +215,14 @@ Statement* Parser::parseFor()
 	{
 		lexer.scanToken();
 	}
-	else throw std::runtime_error("For loop limit separators syntax error");
+	else throw std::runtime_error(getParsingError("\'to\' - upper limit delimiter expected"));
 
 	ASTNode* upperNode = (this->*precedenceTab[0].parserFunc)(precedenceTab);
 
-	if (lexer.getCurrToken().getType() == TokenType::NEWLINE)
-	{
-		lexer.scanToken();
-	}
-	else throw std::runtime_error(getParsingError());
-
+	checkNewLine();
+	
 	CodeBlock* block = parseBlock();
-	return new ForStatement(counterNode, lowerNode, upperNode, block);
+	return new ForStatement(counterNode, lowerNode, upperNode, block, pos);
 }
 
 ASTNode* Parser::parseUnary(precedenceGroup* currGroup)
@@ -246,9 +232,10 @@ ASTNode* Parser::parseUnary(precedenceGroup* currGroup)
 	if (currGroup->findOp.contains(currToken))
 	{
 		// If current token is in the token group we are examining
+		const size_t pos = lexer.getCurrToken().getPos();
 		lexer.scanToken(); // Proceed to next token
 		ASTNode* child = parseUnary(currGroup); // E -> [op]E
-		return new UnaryNode(child, currGroup->findOp[currToken]);
+		return new UnaryNode(child, currGroup->findOp[currToken], pos);
 		// Create unary node, assign the corresponding operator
 	}
 	return (this->*(currGroup + 1)->parserFunc)(currGroup + 1); // E -> T
@@ -264,9 +251,10 @@ ASTNode* Parser::parseBinLeft(precedenceGroup* currGroup)
 		const TokenType currToken = lexer.getCurrToken().getType();
 		if (currGroup->findOp.contains(currToken))
 		{
+			const size_t pos = lexer.getCurrToken().getPos();
 			lexer.scanToken();
 			ASTNode* nodeB = (this->*(currGroup + 1)->parserFunc)(currGroup + 1); // Get left operand
-			ASTNode* tmpNode = new BinaryNode(nodeA, nodeB, currGroup->findOp[currToken]);
+			ASTNode* tmpNode = new BinaryNode(nodeA, nodeB, currGroup->findOp[currToken], pos);
 			// Use temporary node to fix left recursion problem
 			nodeA = tmpNode;
 		}
@@ -283,9 +271,10 @@ ASTNode* Parser::parseBinRight(precedenceGroup* currGroup)
 	if (currGroup->findOp.contains(currToken))
 	{
 		// If current token is in the group we're examining
+		const size_t pos = lexer.getCurrToken().getPos();
 		lexer.scanToken();
 		ASTNode* nodeB = (this->*(currGroup)->parserFunc)(currGroup); // E -> T + E (call E again)
-		return new BinaryNode(nodeA, nodeB, currGroup->findOp[currToken]);
+		return new BinaryNode(nodeA, nodeB, currGroup->findOp[currToken], pos);
 	}
 	return nodeA;
 }
@@ -299,6 +288,7 @@ ASTNode* Parser::parsePostfixArgList(precedenceGroup* currGroup)
 		const TokenType closingToken = lexer.getCurrToken().getOppositeType();
 		if (currGroup->findOp.contains(currToken))
 		{
+			const size_t pos = lexer.getCurrToken().getPos();
 			std::vector<ASTNode*> nOperands;
 			if (lexer.lookForw(1).getType() != closingToken)
 			{
@@ -311,9 +301,9 @@ ASTNode* Parser::parsePostfixArgList(precedenceGroup* currGroup)
 				while (lexer.getCurrToken().getType() == TokenType::COMMA);
 			}
 			else lexer.scanToken();
-			if (lexer.getCurrToken().getType() != closingToken) throw std::runtime_error(getParsingError());
+			if (lexer.getCurrToken().getType() != closingToken) throw std::runtime_error(getParsingError(("closing token expected")));
 			lexer.scanToken();
-			node = new nAryNode(node, currGroup->findOp[currToken], nOperands);
+			node = new nAryNode(node, currGroup->findOp[currToken], nOperands, pos);
 		}
 		else
 			return node;
@@ -330,8 +320,9 @@ ASTNode* Parser::parseUnaryPostfix(precedenceGroup* currGroup)
 		TokenType currToken = lexer.getCurrToken().getType();
 		if (currGroup->findOp.contains(currToken))
 		{
+			const size_t pos = lexer.getCurrToken().getPos();
 			lexer.scanToken();
-			node = new UnaryNode(node, currGroup->findOp[currToken]);
+			node = new UnaryNode(node, currGroup->findOp[currToken], pos);
 		}
 		else
 			return node;
@@ -342,10 +333,11 @@ ASTNode* Parser::parsePrimary(precedenceGroup*)
 {
 	// Parses literals, identifiers, and parentheses
 	ASTNode* node;
+	const size_t pos = lexer.getCurrToken().getPos();
 	switch (lexer.getCurrToken().getType())
 	{
 	case TokenType::INT_LIT: // If number literal, convert lexeme to int
-		node = new LiteralNode(std::stoi(lexer.getCurrToken().getLexeme()));
+		node = new LiteralNode(std::stoi(lexer.getCurrToken().getLexeme()), pos);
 		lexer.scanToken();
 		break;
 	case TokenType::L_PAREN:
@@ -363,11 +355,11 @@ ASTNode* Parser::parsePrimary(precedenceGroup*)
 		{
 			// If it doesn't end with a matching parenthesis, error
 			node = nullptr;
-			throw std::runtime_error(getParsingError("no matching parenthesis"));
+			throw std::runtime_error(getParsingError(") expected - matching parentheses not found"));
 		}
 		break;
 	case TokenType::ID: // For object identifiers
-		node = new IDNode(lexer.getCurrToken().getLexeme());
+		node = new IDNode(lexer.getCurrToken().getLexeme(), pos);
 		lexer.scanToken();
 		break;
 	default:
@@ -381,16 +373,11 @@ ASTNode* Parser::parsePrimary(precedenceGroup*)
 	return node;
 }
 
-std::string Parser::getParsingError(const std::string& customMessage)
+std::string Parser::getParsingError(const std::string& customMessage, int offset)
 {
-	/*
+	
 	std::stringstream ss;
-	int lineNum = 0, realLineNum = 0, linePos = 0;
-	std::tie(lineNum, realLineNum, linePos) = lexer.posToLine(lexer.getCurrToken().getPos());
-	ss << "Parsing error in line " << realLineNum + 1 << ": " << customMessage << '\n';
-	ss << lexer.getInputLine(lineNum) << '\n';
-	for (int i = 0; i != linePos; i++, ss << ' ');
-	ss << "^\n";
-	return ss.str();*/
-	return "parsing error " + customMessage;
+	ss << "Error: " << customMessage << '\n' << lexer.getErrorLine(lexer.getCurrToken().getPos(), offset);
+
+	return ss.str();
 }
