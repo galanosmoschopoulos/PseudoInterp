@@ -15,8 +15,9 @@ class Scope;
 class ArrayContainer;
 class StackContainer;
 class VariantValueType;
-using ExternalFunction = std::function<Object* (const std::vector<Object*>&)>;
-using VariantType = std::variant<int, std::string, bool, float, char, ArrayContainer, StackContainer, Function, ExternalFunction>;
+using ExternalFunction = std::function<Object*(const std::vector<Object*>&)>;
+using VariantType = std::variant<int, std::string, bool, float, char, ArrayContainer, StackContainer, Function,
+                                 ExternalFunction>;
 
 class ASTNode;
 class CodeBlock;
@@ -44,6 +45,7 @@ public:
 private:
 	std::vector<std::unique_ptr<Object>>* vecPtr = nullptr;
 };
+
 class StackContainer
 {
 public:
@@ -53,6 +55,7 @@ public:
 private:
 	std::stack<std::unique_ptr<Object>>* stackPtr = nullptr;
 };
+
 class Function
 {
 public:
@@ -64,6 +67,7 @@ private:
 	std::vector<ASTNode*> paramVec{};
 	int definedFuncLevel = 0;
 };
+
 class Object
 {
 public:

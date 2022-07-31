@@ -35,7 +35,6 @@ public:
 	virtual Object* eval(Scope*, bool isInFunction);
 protected:
 	size_t pos = 0;
-
 };
 
 class IfStatement final : public Statement

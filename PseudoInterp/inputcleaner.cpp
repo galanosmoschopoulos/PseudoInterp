@@ -1,7 +1,11 @@
 ﻿#include "inputcleaner.h"
 
 InputCleaner::InputCleaner() = default;
-InputCleaner::InputCleaner(std::string inputStr) : originalStr(std::move(inputStr)) {}
+
+InputCleaner::InputCleaner(std::string inputStr) : originalStr(std::move(inputStr))
+{
+}
+
 void InputCleaner::setInputStr(const std::string& inputStr)
 {
 	originalStr = inputStr;
@@ -16,7 +20,7 @@ std::string InputCleaner::clean()
 	int deletedLines = 0;
 	while (std::getline(ss, subStr, '\n'))
 	{
-		if (std::ranges::any_of(subStr, ::isgraph))
+		if (std::ranges::any_of(subStr, isgraph))
 		{
 			// If the string contains graphic characters (i.e. not just spaces)
 			subStr.erase(subStr.find_last_not_of(whitespaces) + 1);
@@ -33,7 +37,7 @@ std::string InputCleaner::getErrorLine(const size_t errPos) const
 {
 	std::stringstream ss;
 	size_t currLen = 0, nlines = 0, posInLine = 0;
-	for(const auto& subStr : subStrVec)
+	for (const auto& subStr : subStrVec)
 	{
 		if (currLen + subStr.size() <= errPos)
 		{
@@ -42,11 +46,12 @@ std::string InputCleaner::getErrorLine(const size_t errPos) const
 		}
 		else
 		{
-			posInLine =  errPos - currLen;
+			posInLine = errPos - currLen;
 			break;
 		}
 	}
-	if (nlines >= subStrVec.size()) {
+	if (nlines >= subStrVec.size())
+	{
 		nlines = subStrVec.size() - 1;
 		posInLine = subStrVec.rbegin()->size() - 1;
 	}
@@ -60,5 +65,3 @@ std::string InputCleaner::getErrorLine(const size_t errPos) const
 	ss << "^";
 	return ss.str();
 }
-
-

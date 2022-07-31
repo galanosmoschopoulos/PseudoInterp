@@ -11,7 +11,7 @@ class ObjKey
 {
 public:
 	ObjKey();
-	ObjKey(const int, const int, std::string);
+	ObjKey(int, int, std::string);
 	int scopeLevel = 0;
 	int funcLevel = 0;
 	std::string ID;
@@ -50,4 +50,3 @@ private:
 	int funcLevel = 0;
 	bool derivativeScope = false;
 };
-

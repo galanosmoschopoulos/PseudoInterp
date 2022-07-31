@@ -26,13 +26,13 @@ void interpret(const std::string& inputStr)
 		const auto stop = std::chrono::high_resolution_clock::now();
 		const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 		delete mainBlock;
-		std::cout << '\n' << dye::green_on_black("Successful execution.\nTime elapsed: " + std::to_string(duration.count()) + " ms.") << '\n';
+		std::cout << '\n' << dye::green_on_black(
+			"Successful execution.\nTime elapsed: " + std::to_string(duration.count()) + " ms.") << '\n';
 	}
-	catch(CustomError &ce)
+	catch (CustomError& ce)
 	{
 		std::cerr << '\n' << dye::red_on_black(ce.what() + "\n" + cleaner.getErrorLine(ce.getPos()));
 	}
-
 }
 
 int main(int argc, char** argv)
@@ -45,10 +45,11 @@ int main(int argc, char** argv)
 		unsigned int inputFileSet : 1 = 0;
 	} flags;
 	std::string inputFilePath;
-	try {
-		while(--argc > 0 && (*++argv)[0] == '-')
+	try
+	{
+		while (--argc > 0 && (*++argv)[0] == '-')
 		{
-			for(unsigned char c = *++argv[0]; c; c = *++argv[0])
+			for (unsigned char c = *++argv[0]; c; c = *++argv[0])
 			{
 				switch (std::tolower(c))
 				{
@@ -65,7 +66,7 @@ int main(int argc, char** argv)
 					throw std::runtime_error("Illegal command line argument: " + std::string(1, c));
 				}
 			}
-			if(flags.inputFile)
+			if (flags.inputFile)
 			{
 				flags.inputFile = 0;
 				if (flags.inputFileSet) throw std::runtime_error("Input file already set.");
@@ -76,10 +77,12 @@ int main(int argc, char** argv)
 			}
 		}
 		if (argc != 0) throw std::runtime_error("Illegal command line arguments.");
-		if(flags.help) std::cout << "IB pseudocode interpreter made by Galanos Moschopoulos for the Computer Science IA.\nUsage\t-? : Prints this message\n\t-I : Sets input code file\n\t-V : Prints version number\n";
-		if(flags.ver) std::cout << "Version " << VER << '\n';
+		if (flags.help) std::cout <<
+			"IB pseudocode interpreter made by Galanos Moschopoulos for the Computer Science IA.\nUsage\t-? : Prints this message\n\t-I : Sets input code file\n\t-V : Prints version number\n";
+		if (flags.ver) std::cout << "Version " << VER << '\n';
 
-		if (flags.inputFileSet) {
+		if (flags.inputFileSet)
+		{
 			std::ifstream inputFile(inputFilePath);
 			if (!inputFile.is_open()) throw std::runtime_error("Error opening file \"" + inputFilePath + "\"");
 			std::stringstream fileBuffer;
@@ -88,7 +91,7 @@ int main(int argc, char** argv)
 			inputFile.close();
 		}
 	}
-	catch(std::runtime_error &re)
+	catch (std::runtime_error& re)
 	{
 		std::cerr << re.what() << '\n';
 	}

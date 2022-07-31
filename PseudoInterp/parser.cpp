@@ -74,7 +74,7 @@ bool Parser::lessTabs(int& i)
 		// Less tabs than the current block level
 		return true;
 	}
-	else if (i > blockLevel)
+	if (i > blockLevel)
 	{
 		// Excessive tabs yield indentation error
 		throw ParsingError("Indentation error.", lexer.getCurrToken().getPos());
@@ -188,7 +188,7 @@ Statement* Parser::parseFor()
 	ASTNode* upperNode = (this->*precedenceTab[0].parserFunc)(precedenceTab);
 
 	checkNewLine();
-	
+
 	CodeBlock* block = parseBlock();
 	return new ForStatement(counterNode, lowerNode, upperNode, block, pos);
 }
@@ -267,9 +267,9 @@ ASTNode* Parser::parsePostfixArgList(precedenceGroup* currGroup)
 						(this->*precedenceTab[COMMA_PRECEDENCE + 1].parserFunc)(precedenceTab + COMMA_PRECEDENCE + 1));
 				}
 				while (lexer.getCurrToken().getType() == TokenType::COMMA);
-				if (lexer.getCurrToken().getType() != closingToken) throw ParsingError(") or ] expected.", lexer.getCurrToken().getPos());
+				if (lexer.getCurrToken().getType() != closingToken) throw ParsingError(
+					") or ] expected.", lexer.getCurrToken().getPos());
 				lexer.scanToken();
-
 			}
 			else lexer.scanToken(2);
 			node = new nAryNode(node, currGroup->findOp[currToken], nOperands, pos);
@@ -398,4 +398,3 @@ ASTNode* Parser::parsePrimary(precedenceGroup*)
 	}
 	return node;
 }
-

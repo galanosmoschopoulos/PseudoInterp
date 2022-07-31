@@ -1,14 +1,12 @@
 #include "object.h"
 #include "errors.h"
 #include <iostream>
+
 template <class... Ts>
 struct overload : Ts...
 {
 	using Ts::operator()...;
 };
-
-template <class... Ts>
-explicit overload(Ts ...) -> overload<Ts...>;
 
 ArrayContainer::ArrayContainer() = default;
 
@@ -16,23 +14,24 @@ ArrayContainer::ArrayContainer(const std::vector<Object*>& dimVec)
 {
 	if (dimVec.empty()) throw ArgumentError("At least 1 array size parameter expected.");
 	size_t currSize = 0;
-	if(const int* size = std::get_if<int>(&dimVec[0]->data))
+	if (const int* size = std::get_if<int>(&dimVec[0]->data))
 	{
-		if (*size > 0) currSize = static_cast<size_t>(* size);
+		if (*size > 0) currSize = static_cast<size_t>(*size);
 		else throw ValueError("Array size parameter must be a positive integer.");
 	}
 	else throw TypeError("Array size parameter must be an integer.");
 	vecPtr = new std::vector<std::unique_ptr<Object>>(currSize);
 	if (dimVec.size() == 1)
 	{
-		for(size_t i = 0; i != currSize; i++)
+		for (size_t i = 0; i != currSize; i++)
 		{
 			const auto objPtr = new Object();
 			objPtr->setLval(true);
 			(*vecPtr)[i].reset(objPtr);
 		}
 	}
-	else {
+	else
+	{
 		for (size_t i = 0; i != currSize; i++)
 		{
 			const auto objPtr = new Object(ArrayContainer(std::vector<Object*>(dimVec.begin() + 1, dimVec.end())));
@@ -47,7 +46,7 @@ Object* ArrayContainer::getArray(const std::vector<Object*>& idxVec) const
 	if (idxVec.empty())
 		throw ArgumentError("At least 1 array subscript expected.");
 	size_t currIdx = 0;
-	if(const int* idx = std::get_if<int>(&idxVec[0]->data))
+	if (const int* idx = std::get_if<int>(&idxVec[0]->data))
 	{
 		if (*idx >= 0) currIdx = static_cast<size_t>(*idx);
 		else throw ValueError("Array subscript must be a non-negative integer.");
@@ -58,8 +57,7 @@ Object* ArrayContainer::getArray(const std::vector<Object*>& idxVec) const
 		throw RangeError("Array subscript out of range.");
 	if (idxVec.size() == 1)
 		return (*vecPtr)[currIdx].get(); // Convert std::shared_ptr to raw pointer
-	else
-		return (*(*vecPtr)[currIdx])[std::vector<Object*>(idxVec.begin()+1, idxVec.end())];
+	return (*(*vecPtr)[currIdx])[std::vector<Object*>(idxVec.begin() + 1, idxVec.end())];
 }
 
 StackContainer::StackContainer(const std::vector<Object*>& argVec)
@@ -85,7 +83,7 @@ Object* StackContainer::pop(const std::vector<Object*>& argVec) const
 }
 
 Function::Function(CodeBlock* block, std::vector<ASTNode*> params, const int level) : block(block), paramVec(
-	                                                                                      std::move(params)), definedFuncLevel(level)
+	std::move(params)), definedFuncLevel(level)
 {
 };
 
@@ -136,12 +134,14 @@ bool Object::isTrue()
 {
 	bool result = false;
 	std::visit(overload{
-		[&result](bool& val) {result = val; },
-		[&result](char& val) {result = static_cast<bool>(val); },
-		[&result](int& val) {result = static_cast<bool>(val); },
-		[&result](float& val) {result = static_cast<bool>(val); },
-		[](auto&) {}
-	}, data);
+		           [&result](bool& val) { result = val; },
+		           [&result](char& val) { result = static_cast<bool>(val); },
+		           [&result](int& val) { result = static_cast<bool>(val); },
+		           [&result](float& val) { result = static_cast<bool>(val); },
+		           [](auto&)
+		           {
+		           }
+	           }, data);
 	return result;
 }
 
@@ -149,13 +149,12 @@ std::string Object::toStr()
 {
 	std::string result;
 	std::visit(overload{
-		[&result](bool &val) {result = (val)?("true"):("false"); },
-		[&result](char &val) {result = std::string(1, val); },
-		[&result](int& val) {result = std::to_string(val); },
-		[&result](float& val) {result = std::to_string(val); },
-		[&result](std::string& i) {result = i; },
-		[](auto&) {throw TypeError("Object does not have a string representation"); }
-		}, data);
+		           [&result](bool& val) { result = (val) ? ("true") : ("false"); },
+		           [&result](char& val) { result = std::string(1, val); },
+		           [&result](int& val) { result = std::to_string(val); },
+		           [&result](float& val) { result = std::to_string(val); },
+		           [&result](std::string& i) { result = i; },
+		           [](auto&) { throw TypeError("Object does not have a string representation"); }
+	           }, data);
 	return result;
 }
-

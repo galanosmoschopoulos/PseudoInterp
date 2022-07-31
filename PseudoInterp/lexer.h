@@ -100,13 +100,15 @@ public:
 	Token lookForw(size_t);
 	void scanToken(int n = 1);
 	void lexInput();
+
 	void printTokenList() const
 	{
-		for(auto t : tokenList)
+		for (auto t : tokenList)
 		{
 			std::cout << t.getPos() << ":\t" << t.getLexeme() << '\n';
 		}
 	}
+
 private:
 	std::vector<Token> tokenList;
 	size_t tokenListIndex = 0;

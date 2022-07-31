@@ -1,21 +1,24 @@
 #include "operators.h"
 #include "errors.h"
 
-template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
-template<class... Ts> overload(Ts...)->overload<Ts...>;
+template <class... Ts>
+struct overload : Ts...
+{
+	using Ts::operator()...;
+};
 
 
 static VariantType cast_to_str(VariantType& var)
 {
 	std::string result;
 	std::visit(overload{
-		[&result](bool &val) {result = (val)?("true"):("false"); },
-		[&result](char &val) {result = std::string(1, val); },
-		[&result](int& val) {result = std::to_string(val); },
-		[&result](float& val) {result = std::to_string(val); },
-		[&result](std::string& i) {result = i; },
-		[](auto&) {throw TypeError("Cannot cast to string."); }
-		}, var);
+		           [&result](bool& val) { result = (val) ? ("true") : ("false"); },
+		           [&result](char& val) { result = std::string(1, val); },
+		           [&result](int& val) { result = std::to_string(val); },
+		           [&result](float& val) { result = std::to_string(val); },
+		           [&result](std::string& i) { result = i; },
+		           [](auto&) { throw TypeError("Cannot cast to string."); }
+	           }, var);
 	return VariantType(result);
 }
 
@@ -23,10 +26,10 @@ static VariantType cast_to_char(VariantType& var)
 {
 	char result = 0;
 	std::visit(overload{
-		//[&result](bool& val) { result = static_cast<unsigned char>(val); },
-		[&result](char& val) { result = val; },
-		[](auto&) {throw TypeError("Impossible to implicitly cast type to numerical."); }
-		}, var);
+		           //[&result](bool& val) { result = static_cast<unsigned char>(val); },
+		           [&result](char& val) { result = val; },
+		           [](auto&) { throw TypeError("Impossible to implicitly cast type to numerical."); }
+	           }, var);
 	return VariantType(result);
 }
 
@@ -34,32 +37,36 @@ static VariantType cast_to_int(VariantType& v)
 {
 	int result = 0;
 	std::visit(overload{
-		[&result](int& val) {result = val; },
-		[&result, &v](auto&) {result = static_cast<int>(std::get<char>(cast_to_char(v))); }
-		}, v);
+		           [&result](int& val) { result = val; },
+		           [&result, &v](auto&) { result = static_cast<int>(std::get<char>(cast_to_char(v))); }
+	           }, v);
 	return VariantType(result);
 }
+
 static VariantType cast_to_float(VariantType& var)
 {
 	float result = 0.0f;
 	std::visit(overload{
-		[&result](float& val) {result = val; },
-		[&result, &var](auto&) {result = static_cast<float>(std::get<int>(cast_to_int(var))); }
-		}, var);
+		           [&result](float& val) { result = val; },
+		           [&result, &var](auto&) { result = static_cast<float>(std::get<int>(cast_to_int(var))); }
+	           }, var);
 	return VariantType(result);
 }
 
 static void cast_numerical(VariantType& varL, VariantType& varR)
 {
-	if (std::holds_alternative<float>(varL) || std::holds_alternative<float>(varR)) {
+	if (std::holds_alternative<float>(varL) || std::holds_alternative<float>(varR))
+	{
 		varL = cast_to_float(varL);
 		varR = cast_to_float(varR);
 	}
-	else if (std::holds_alternative<int>(varL) || std::holds_alternative<int>(varR)) {
+	else if (std::holds_alternative<int>(varL) || std::holds_alternative<int>(varR))
+	{
 		varL = cast_to_int(varL);
 		varR = cast_to_int(varR);
 	}
-	else if (std::holds_alternative<char>(varL) || std::holds_alternative<char>(varR)) {
+	else if (std::holds_alternative<char>(varL) || std::holds_alternative<char>(varR))
+	{
 		varL = cast_to_char(varL);
 		varR = cast_to_char(varR);
 	}
@@ -67,7 +74,7 @@ static void cast_numerical(VariantType& varL, VariantType& varR)
 		throw TypeError("Impossible to implicitly cast type to numerical.");
 }
 
-template<typename T>
+template <typename T>
 static VariantType numericalOperator(VariantType varL, VariantType varR, T opFunc)
 {
 	cast_numerical(varL, varR);
@@ -76,11 +83,14 @@ static VariantType numericalOperator(VariantType varL, VariantType varR, T opFun
 		           [&result, &opFunc](char& left, char& right) { result = opFunc(left, right); },
 		           [&result, &opFunc](int& left, int& right) { result = opFunc(left, right); },
 		           [&result, &opFunc](float& left, float& right) { result = opFunc(left, right); },
-		           [](auto&, auto&) {}
+		           [](auto&, auto&)
+		           {
+		           }
 	           }, varL, varR);
 	return result;
 }
-template<typename T>
+
+template <typename T>
 static void numericalUnaryOperator(VariantType& var, T opFunc)
 {
 	VariantType result;
@@ -88,11 +98,13 @@ static void numericalUnaryOperator(VariantType& var, T opFunc)
 		           [&opFunc](char& val) { opFunc(val); },
 		           [&opFunc](int& val) { opFunc(val); },
 		           [&opFunc](float& val) { opFunc(val); },
-		           [](auto&) {}
+		           [](auto&)
+		           {
+		           }
 	           }, var);
 }
 
-template<typename T>
+template <typename T>
 static VariantType numericalOperatorNonFloat(VariantType varL, VariantType varR, T opFunc)
 {
 	cast_numerical(varL, varR);
@@ -100,7 +112,9 @@ static VariantType numericalOperatorNonFloat(VariantType varL, VariantType varR,
 	std::visit(overload{
 		           [&result, &opFunc](char& left, char& right) { result = opFunc(left, right); },
 		           [&result, &opFunc](int& left, int& right) { result = opFunc(left, right); },
-		           [](auto&, auto&) {}
+		           [](auto&, auto&)
+		           {
+		           }
 	           }, varL, varR);
 	return result;
 }
@@ -116,13 +130,15 @@ Object& Object::operator=(const Object& obj2)
 Object& Object::operator+=(Object& rhs)
 {
 	VariantType varL = this->data, varR = rhs.data;
-	if (std::holds_alternative<std::string>(varL) || std::holds_alternative<std::string>(varR)) {
+	if (std::holds_alternative<std::string>(varL) || std::holds_alternative<std::string>(varR))
+	{
 		varL = cast_to_str(varL);
 		varR = cast_to_str(varR);
 		this->data = VariantType(std::get<std::string>(varL) + std::get<std::string>(varR));
 	}
-	else {
-		this->data = numericalOperator(varL, varR, [](auto &x, auto &y) {return x + y; });
+	else
+	{
+		this->data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x + y; });
 	}
 	return *this;
 }
@@ -137,7 +153,7 @@ Object operator+(Object lhs, Object& rhs)
 Object& Object::operator-=(Object& rhs)
 {
 	VariantType varL = this->data, varR = rhs.data;
-	this->data = numericalOperator(varL, varR, [](auto &x, auto &y) {return x - y; });
+	this->data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x - y; });
 	return *this;
 }
 
@@ -151,7 +167,7 @@ Object operator-(Object lhs, Object& rhs)
 Object& Object::operator*=(Object& rhs)
 {
 	VariantType varL = this->data, varR = rhs.data;
-	this->data = numericalOperator(varL, varR, [](auto &x, auto &y) {return x * y; });
+	this->data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x * y; });
 	return *this;
 }
 
@@ -165,7 +181,7 @@ Object operator*(Object lhs, Object& rhs)
 Object& Object::operator/=(Object& rhs)
 {
 	VariantType varL = this->data, varR = rhs.data;
-	this->data = numericalOperator(varL, varR, [](auto &x, auto &y) {return x / y; });
+	this->data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x / y; });
 	return *this;
 }
 
@@ -179,7 +195,7 @@ Object operator/(Object lhs, Object& rhs)
 Object& Object::operator%=(Object& rhs)
 {
 	VariantType varL = this->data, varR = rhs.data;
-	this->data = numericalOperatorNonFloat(varL, varR, [](auto &x, auto &y) {return x % y; });
+	this->data = numericalOperatorNonFloat(varL, varR, [](auto& x, auto& y) { return x % y; });
 	return *this;
 }
 
@@ -192,13 +208,13 @@ Object operator%(Object lhs, Object& rhs)
 
 Object& Object::operator++()
 {
-	numericalUnaryOperator(data, [](auto &x) {++x; });
+	numericalUnaryOperator(data, [](auto& x) { ++x; });
 	return *this;
 }
 
 Object& Object::operator--()
 {
-	numericalUnaryOperator(data, [](auto &x) {--x; });
+	numericalUnaryOperator(data, [](auto& x) { --x; });
 	return *this;
 }
 
@@ -221,7 +237,7 @@ Object Object::operator-() const
 {
 	Object tmp = *this;
 	tmp.setLval(false);
-	numericalUnaryOperator(tmp.data, [](auto &x) {x *= -1; });
+	numericalUnaryOperator(tmp.data, [](auto& x) { x *= -1; });
 	return tmp;
 }
 
@@ -229,7 +245,9 @@ Object Object::operator+() const
 {
 	Object tmp = *this;
 	tmp.setLval(false);
-	numericalUnaryOperator(tmp.data, [](auto &) { });
+	numericalUnaryOperator(tmp.data, [](auto&)
+	{
+	});
 	return tmp;
 }
 
@@ -237,10 +255,10 @@ Object operator<(Object& lhs, Object& rhs)
 {
 	VariantType varL = lhs.data, varR = rhs.data;
 	Object result;
-	if (std::holds_alternative<std::string>(varL) && std::holds_alternative<std::string>(varR)) 
+	if (std::holds_alternative<std::string>(varL) && std::holds_alternative<std::string>(varR))
 		result.data = std::get<std::string>(varL) < std::get<std::string>(varR);
-	else 
-		result.data = numericalOperator(varL, varR, [](auto &x, auto &y) {return x < y; });
+	else
+		result.data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x < y; });
 	return result;
 }
 
@@ -265,10 +283,9 @@ Object operator==(Object& lhs, Object& rhs)
 	Object result;
 	if (std::holds_alternative<std::string>(varL) && std::holds_alternative<std::string>(varR))
 		result.data = std::get<std::string>(varL) == std::get<std::string>(varR);
-	else 
-		result.data = numericalOperator(varL, varR, [](auto &x, auto &y) {return x == y; });
+	else
+		result.data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x == y; });
 	return result;
-
 }
 
 Object operator!=(Object& lhs, Object& rhs)
@@ -306,10 +323,11 @@ Object* Object::operator[](const std::vector<Object*>& indexVec)
 {
 	Object* result = nullptr;
 	std::visit(overload{
-		           [&result, &indexVec](ArrayContainer& array_container) { result = array_container.getArray(indexVec); },
+		           [&result, &indexVec](ArrayContainer& array_container)
+		           {
+			           result = array_container.getArray(indexVec);
+		           },
 		           [](auto&) { throw TypeError("Object does not accept a subscript."); }
 	           }, this->data);
 	return result;
-
 }
-

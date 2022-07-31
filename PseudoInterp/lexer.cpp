@@ -7,16 +7,18 @@
 #include <tuple>
 Lexer::Lexer() = default;
 
-Lexer::Lexer(std::string strIn) : str(std::move(strIn)) {}
+Lexer::Lexer(std::string strIn) : str(std::move(strIn))
+{
+}
 
 void Lexer::setInput(const std::string& strIn)
 {
 	str = strIn;
 }
 
-void Lexer::scanToken(const int n) { tokenListIndex+=n; } // Goes to next token
+void Lexer::scanToken(const int n) { tokenListIndex += n; } // Goes to next token
 Token Lexer::lookForw(const size_t i) { return tokenList[tokenListIndex + i]; } // Returns the ith next token
-Token Lexer::getCurrToken() { return Lexer::lookForw(0); } // Returns current token
+Token Lexer::getCurrToken() { return lookForw(0); } // Returns current token
 
 
 void Lexer::lexInput()
@@ -32,7 +34,7 @@ void Lexer::lexInput()
 			break;
 		}
 		std::string tmpLexeme;
-		if(str[i] == '.')
+		if (str[i] == '.')
 		{
 			tmpLexeme.push_back(str[i++]);
 			while (isdigit(str[i]) && i < str.size()) // Store all continuous digits
@@ -57,7 +59,7 @@ void Lexer::lexInput()
 		if (foundFixedToken) continue;
 		if (isdigit(str[i])) // If it starts with a digit
 		{
-			TokenType tType = TokenType::INT_LIT;
+			auto tType = TokenType::INT_LIT;
 			while (isdigit(str[i]) && i < str.size()) // Store all continuous digits
 				tmpLexeme.push_back(str[i++]);
 			if (str[i] == '.')
@@ -112,7 +114,8 @@ void Lexer::lexInput()
 						}
 						tmpLexeme.push_back(static_cast<char>(charNum));
 					}
-					else {
+					else
+					{
 						switch (str[i])
 						{
 						case 'n':
