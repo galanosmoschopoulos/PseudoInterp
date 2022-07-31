@@ -16,7 +16,7 @@ class ArrayContainer;
 class StackContainer;
 class VariantValueType;
 using ExternalFunction = std::function<Object* (const std::vector<Object*>&)>;
-using VariantType = std::variant<int, std::string, bool, float, unsigned char, ArrayContainer, StackContainer, Function, ExternalFunction>;
+using VariantType = std::variant<int, std::string, bool, float, char, ArrayContainer, StackContainer, Function, ExternalFunction>;
 
 class ASTNode;
 class CodeBlock;

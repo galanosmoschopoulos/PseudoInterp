@@ -1,7 +1,6 @@
 #include "object.h"
+#include "errors.h"
 #include <iostream>
-#include <stdexcept>
-#include "operators.h"
 template <class... Ts>
 struct overload : Ts...
 {
@@ -15,18 +14,14 @@ ArrayContainer::ArrayContainer() = default;
 
 ArrayContainer::ArrayContainer(const std::vector<Object*>& dimVec)
 {
-	if (dimVec.empty())
-		throw std::runtime_error("Subscript indices must be positive integers.");
+	if (dimVec.empty()) throw ArgumentError("At least 1 array size parameter expected.");
 	size_t currSize = 0;
-	std::visit(overload{
-		           [&currSize](int& size)
-		           {
-					   if (size > 0) currSize = size;
-					   else throw std::runtime_error("Array size parameters must be positive integers.");
-		           },
-		           [](auto&) { throw std::runtime_error("Array size parameters must be positive integers."); }
-	           }, dimVec[0]->data);
-
+	if(const int* size = std::get_if<int>(&dimVec[0]->data))
+	{
+		if (*size > 0) currSize = static_cast<size_t>(* size);
+		else throw ValueError("Array size parameter must be a positive integer.");
+	}
+	else throw TypeError("Array size parameter must be an integer.");
 	vecPtr = new std::vector<std::unique_ptr<Object>>(currSize);
 	if (dimVec.size() == 1)
 	{
@@ -50,19 +45,17 @@ ArrayContainer::ArrayContainer(const std::vector<Object*>& dimVec)
 Object* ArrayContainer::getArray(const std::vector<Object*>& idxVec) const
 {
 	if (idxVec.empty())
-		throw std::runtime_error("Subscript indices must be non-negative integers.");
+		throw ArgumentError("At least 1 array subscript expected.");
 	size_t currIdx = 0;
-	std::visit(overload{
-		           [&currIdx](int& idx)
-		           {
-					   if (idx >= 0) currIdx = idx;
-					   else throw std::runtime_error("Subscript indices must be non-negative integers.");
-		           },
-		           [](auto&) { throw std::runtime_error("Subscript indices must be non-negative integers."); }
-	           }, idxVec[0]->data);
+	if(const int* idx = std::get_if<int>(&idxVec[0]->data))
+	{
+		if (*idx >= 0) currIdx = static_cast<size_t>(*idx);
+		else throw ValueError("Array subscript must be a non-negative integer.");
+	}
+	else throw TypeError("Array subscript must be an integer.");
 
 	if (currIdx >= vecPtr->size())
-		throw std::runtime_error("Array subscript out of range.");
+		throw RangeError("Array subscript out of range.");
 	if (idxVec.size() == 1)
 		return (*vecPtr)[currIdx].get(); // Convert std::shared_ptr to raw pointer
 	else
@@ -71,21 +64,21 @@ Object* ArrayContainer::getArray(const std::vector<Object*>& idxVec) const
 
 StackContainer::StackContainer(const std::vector<Object*>& argVec)
 {
-	if (!argVec.empty()) throw std::runtime_error("Stack initializer does not take any arguments!");
+	if (!argVec.empty()) throw ArgumentError("Stack constructor does not take any arguments!");
 	stackPtr = new std::stack<std::unique_ptr<Object>>;
 }
 
 Object* StackContainer::push(const std::vector<Object*>& argVec) const
 {
-	if (argVec.size() != 1) throw std::runtime_error("Wrong arguments.");
+	if (argVec.size() != 1) throw ArgumentError("Exactly 1 argument expected.");
 	stackPtr->emplace(std::make_unique<Object>(*argVec[0]));
 	return nullptr;
 }
 
 Object* StackContainer::pop(const std::vector<Object*>& argVec) const
 {
-	if (!argVec.empty()) throw std::runtime_error("Wrong arguments.");
-	if (stackPtr->empty()) throw std::runtime_error("Called pop() on empty stack.");
+	if (!argVec.empty()) throw ArgumentError("No arguments expected.");
+	if (stackPtr->empty()) throw CustomError("Called pop() on empty stack.");
 	const auto poppedObj = new Object(*stackPtr->top());
 	stackPtr->pop();
 	return poppedObj;
@@ -101,7 +94,7 @@ Function::Function() = default;
 Object* Function::eval(Scope* scope, const std::vector<Object*>& argVec) const
 {
 	if (argVec.size() != paramVec.size())
-		throw std::runtime_error("Wrong number of arguments");
+		throw ArgumentError("Number of arguments not equal to number of declared parameters.");
 
 	Scope* newScope = scope->getRestricted(definedFuncLevel);
 
@@ -144,7 +137,7 @@ bool Object::isTrue()
 	bool result = false;
 	std::visit(overload{
 		[&result](bool& val) {result = val; },
-		[&result](unsigned char& val) {result = static_cast<bool>(val); },
+		[&result](char& val) {result = static_cast<bool>(val); },
 		[&result](int& val) {result = static_cast<bool>(val); },
 		[&result](float& val) {result = static_cast<bool>(val); },
 		[](auto&) {}
@@ -157,11 +150,11 @@ std::string Object::toStr()
 	std::string result;
 	std::visit(overload{
 		[&result](bool &val) {result = (val)?("true"):("false"); },
-		[&result](unsigned char &val) {result = std::string(1, val); },
+		[&result](char &val) {result = std::string(1, val); },
 		[&result](int& val) {result = std::to_string(val); },
 		[&result](float& val) {result = std::to_string(val); },
 		[&result](std::string& i) {result = i; },
-		[](auto&) {throw std::runtime_error("Object does not have a string representation"); }
+		[](auto&) {throw TypeError("Object does not have a string representation"); }
 		}, data);
 	return result;
 }

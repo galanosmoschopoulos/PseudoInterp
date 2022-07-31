@@ -2,43 +2,53 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <chrono>
 #include "AST.h"
 #include "parser.h"
 #include "scope.h"
+#include "inputcleaner.h"
+#include "errors.h"
+#include "color.h"
 
 #define VER "1.0"
 
+
 void interpret(const std::string& inputStr)
 {
+	InputCleaner cleaner(inputStr);
 	try
 	{
-		Scope globalScope;
 		Parser parser;
-		const CodeBlock* mainBlock = parser.getAST(inputStr);
+		const CodeBlock* mainBlock = parser.getAST(cleaner.clean());
+		Scope globalScope;
+		const auto start = std::chrono::high_resolution_clock::now();
 		mainBlock->eval(&globalScope, false);
+		const auto stop = std::chrono::high_resolution_clock::now();
+		const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 		delete mainBlock;
+		std::cout << '\n' << dye::green_on_black("Successful execution.\nTime elapsed: " + std::to_string(duration.count()) + " ms.") << '\n';
 	}
-	catch (std::runtime_error& re)
+	catch(CustomError &ce)
 	{
-		std::cerr << re.what() << std::endl;
+		std::cerr << '\n' << dye::red_on_black(ce.what() + "\n" + cleaner.getErrorLine(ce.getPos()));
 	}
+
 }
 
 int main(int argc, char** argv)
 {
 	struct commandLineFlags
 	{
-		int help : 1 = 0;
-		int ver : 1 = 0;
-		int inputFile : 1 = 0;
-		int inputFileSet : 1 = 0;
+		unsigned int help : 1 = 0;
+		unsigned int ver : 1 = 0;
+		unsigned int inputFile : 1 = 0;
+		unsigned int inputFileSet : 1 = 0;
 	} flags;
 	std::string inputFilePath;
 	try {
 		while(--argc > 0 && (*++argv)[0] == '-')
 		{
-			unsigned char c;
-			while (c = *++argv[0])
+			for(unsigned char c = *++argv[0]; c; c = *++argv[0])
 			{
 				switch (std::tolower(c))
 				{

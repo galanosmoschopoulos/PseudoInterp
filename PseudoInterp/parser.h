@@ -186,5 +186,4 @@ private:
 	// Each block increases this by one. So if the main block (which contains everything) is level 0, then blockLevel is initially -1.
 	bool lessTabs(int&);
 	void checkNewLine();
-	std::string getParsingError(const std::string& customMessage = "", int offset = 0);
 };

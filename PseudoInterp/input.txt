@@ -1,10 +1,6 @@
-N = 0
-input(N)
-A = Array(N)
+N = input()
 for i from 0 to N-1
-	A[i] = i+1
-sum = 0
-for i from 0 to N-1
-	output(A[i])
-	sum += A[i]
-output(sum)
+	s = ""
+	for j from 0 to i
+		s += '*'
+	output(s)

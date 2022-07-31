@@ -1,5 +1,7 @@
 #include "scope.h"
 
+#include <ranges>
+#include "errors.h"
 ObjKey::ObjKey() = default;
 
 ObjKey::ObjKey(const int scopeLevel, const int funcLevel, std::string ID) : scopeLevel(scopeLevel),
@@ -28,7 +30,7 @@ Scope::Scope()
 		*IDNode("input", 0).eval(this, true) =
 			Object([](const std::vector<Object*>& argVec)
 				{
-					if (argVec.size() > 1) throw std::runtime_error("Wrong number of arguments!");
+					if (argVec.size() > 1) throw ArgumentError("At most one argument expected.");
 					std::string inputStr;
 					std::getline(std::cin, inputStr);
 					Object* inputObj = nullptr;
@@ -83,14 +85,14 @@ void Scope::decrLevel()
 {
 	if (scopeLevel == 0)
 	{
-		throw std::runtime_error("Scope level cannot be negative.");
+		throw FatalError("");
 	}
 	std::vector<ObjKey> toBeDeleted;
-	for (auto itr = scopeMap.rbegin(); itr != scopeMap.rend(); ++itr)
+	for (auto& itr : std::ranges::reverse_view(scopeMap))
 	{
-		if (itr->first.scopeLevel == scopeLevel)
+		if (itr.first.scopeLevel == scopeLevel)
 		{
-			toBeDeleted.push_back(itr->first);
+			toBeDeleted.push_back(itr.first);
 		}
 	}
 	for (const auto& x : toBeDeleted)
@@ -114,11 +116,11 @@ void Scope::addObj(Object* obj, const std::string& id)
 
 Object* Scope::getObj(const std::string& id)
 {
-	for (auto itr = scopeMap.rbegin(); itr != scopeMap.rend(); ++itr)
+	for (auto& itr : std::ranges::reverse_view(scopeMap))
 	{
-		if (itr->first.ID == id)
+		if (itr.first.ID == id)
 		{
-			return itr->second;
+			return itr.second;
 		}
 	}
 	return nullptr;
@@ -134,10 +136,10 @@ Scope* Scope::getRestricted(const int maxFuncLevel)
 	const auto newScope = new Scope;
 	newScope->derivativeScope = true;
 	ObjMap& newMap = newScope->getMap();
-	for (auto itr = scopeMap.begin(); itr != scopeMap.end(); ++itr)
+	for (auto& itr : scopeMap)
 	{
-		if (itr->first.funcLevel <= maxFuncLevel)
-			newMap.insert(*itr);
+		if (itr.first.funcLevel <= maxFuncLevel)
+			newMap.insert(itr);
 		else
 			break;
 	}

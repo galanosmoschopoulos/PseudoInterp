@@ -100,8 +100,7 @@ public:
 	Token lookForw(size_t);
 	void scanToken(int n = 1);
 	void lexInput();
-	std::string getErrorLine(size_t, int offset = 0) const;
-	void printTokenList()
+	void printTokenList() const
 	{
 		for(auto t : tokenList)
 		{
@@ -111,7 +110,6 @@ public:
 private:
 	std::vector<Token> tokenList;
 	size_t tokenListIndex = 0;
-	std::string originalStr;
 	std::string str;
 	std::vector<TokenDescriptor> fixedTokenList = {
 		// A list of keywords, relating lexeme to token type
@@ -159,7 +157,4 @@ private:
 		TokenDescriptor("return", TokenType::RETURN_TOK),
 		TokenDescriptor("function", TokenType::FUNCTION_DEF)
 	};
-	std::string preprocessStr(const std::string&);
-	std::vector<std::string> subStrVec;
-	std::vector<int> sumOfDeletedStrs;
 };

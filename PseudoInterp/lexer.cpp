@@ -7,43 +7,17 @@
 #include <tuple>
 Lexer::Lexer() = default;
 
-Lexer::Lexer(std::string strIn) : originalStr(std::move(strIn))
-{
-	str = preprocessStr(originalStr);
-}
+Lexer::Lexer(std::string strIn) : str(std::move(strIn)) {}
 
 void Lexer::setInput(const std::string& strIn)
 {
-	originalStr = strIn;
-	str = preprocessStr(originalStr);
+	str = strIn;
 }
 
 void Lexer::scanToken(const int n) { tokenListIndex+=n; } // Goes to next token
 Token Lexer::lookForw(const size_t i) { return tokenList[tokenListIndex + i]; } // Returns the ith next token
 Token Lexer::getCurrToken() { return Lexer::lookForw(0); } // Returns current token
 
-std::string Lexer::preprocessStr(const std::string& initStr)
-// Removes blank lines and trailing spaces, adds newline to the end.
-{
-	subStrVec.erase(subStrVec.begin(), subStrVec.end());
-	std::stringstream ss(initStr);
-	std::string subStr, finalStr;
-	const std::string whitespaces(" \t\f\v\n\r");
-	int deletedLines = 0;
-	while (std::getline(ss, subStr, '\n'))
-	{
-		if (std::ranges::any_of(subStr, ::isgraph))
-		{
-			// If the string contains graphic characters (i.e. not just spaces)
-			subStr.erase(subStr.find_last_not_of(whitespaces) + 1);
-			finalStr += subStr + "\n"; // Add to new string
-			subStrVec.push_back(subStr + '\n');
-			sumOfDeletedStrs.push_back(deletedLines);
-		}
-		else deletedLines++;
-	}
-	return finalStr;
-}
 
 void Lexer::lexInput()
 {
@@ -199,39 +173,6 @@ void Lexer::lexInput()
 			// If it doesn't match the above, there's a problem
 		}
 	}
-}
-
-std::string Lexer::getErrorLine(size_t errPos, int offset) const
-{
-	errPos += offset;
-	std::stringstream ss;
-	size_t currLen = 0, nlines = 0, posInLine = 0;
-	for(const auto& str : subStrVec)
-	{
-		if (currLen + str.size() <= errPos)
-		{
-			currLen += str.size();
-			nlines++;
-		}
-		else
-		{
-			posInLine =  errPos - currLen;
-			break;
-		}
-	}
-	if (nlines >= subStrVec.size()) {
-		nlines = subStrVec.size() - 1;
-		posInLine = subStrVec.rbegin()->size() - 1;
-	}
-	else if (posInLine >= subStrVec[nlines].size()) posInLine = subStrVec[nlines].size() - 1;
-
-	ss << "Line: " << nlines + sumOfDeletedStrs[nlines] + 1 << '\n';
-	std::string s = subStrVec[nlines];
-	std::ranges::replace(s.begin(), s.end(), '\t', ' ');
-	ss << s;
-	for (size_t i = 0; i < posInLine; ++i) ss << ' ';
-	ss << "^";
-	return ss.str();
 }
 
 TokenDescriptor::TokenDescriptor() = default;

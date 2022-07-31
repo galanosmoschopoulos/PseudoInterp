@@ -1,5 +1,5 @@
 #include "operators.h"
-#include <type_traits>
+#include "errors.h"
 
 template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
 template<class... Ts> overload(Ts...)->overload<Ts...>;
@@ -10,22 +10,22 @@ static VariantType cast_to_str(VariantType& var)
 	std::string result;
 	std::visit(overload{
 		[&result](bool &val) {result = (val)?("true"):("false"); },
-		[&result](unsigned char &val) {result = std::string(1, val); },
+		[&result](char &val) {result = std::string(1, val); },
 		[&result](int& val) {result = std::to_string(val); },
 		[&result](float& val) {result = std::to_string(val); },
 		[&result](std::string& i) {result = i; },
-		[](auto&) {throw std::runtime_error("Impossible cast!"); }
+		[](auto&) {throw TypeError("Cannot cast to string."); }
 		}, var);
 	return VariantType(result);
 }
 
 static VariantType cast_to_char(VariantType& var)
 {
-	unsigned char result = 0;
+	char result = 0;
 	std::visit(overload{
 		//[&result](bool& val) { result = static_cast<unsigned char>(val); },
-		[&result](unsigned char& val) { result = val; },
-		[](auto&) {throw std::runtime_error("Impossible cast!"); }
+		[&result](char& val) { result = val; },
+		[](auto&) {throw TypeError("Impossible to implicitly cast type to numerical."); }
 		}, var);
 	return VariantType(result);
 }
@@ -35,7 +35,7 @@ static VariantType cast_to_int(VariantType& v)
 	int result = 0;
 	std::visit(overload{
 		[&result](int& val) {result = val; },
-		[&result, &v](auto&) {result = static_cast<int>(std::get<unsigned char>(cast_to_char(v))); }
+		[&result, &v](auto&) {result = static_cast<int>(std::get<char>(cast_to_char(v))); }
 		}, v);
 	return VariantType(result);
 }
@@ -51,14 +51,20 @@ static VariantType cast_to_float(VariantType& var)
 
 static void cast_numerical(VariantType& varL, VariantType& varR)
 {
-	if (std::holds_alternative<float>(varL) || std::holds_alternative<float>(varR))
-		varL = cast_to_float(varL), varR = cast_to_float(varR);
-	else if (std::holds_alternative<int>(varL) || std::holds_alternative<int>(varR))
-		varL = cast_to_int(varL), varR = cast_to_int(varR);
-	else if (std::holds_alternative<unsigned char>(varL) || std::holds_alternative<unsigned char>(varR))
-		varL = cast_to_char(varL), varR = cast_to_char(varR);
+	if (std::holds_alternative<float>(varL) || std::holds_alternative<float>(varR)) {
+		varL = cast_to_float(varL);
+		varR = cast_to_float(varR);
+	}
+	else if (std::holds_alternative<int>(varL) || std::holds_alternative<int>(varR)) {
+		varL = cast_to_int(varL);
+		varR = cast_to_int(varR);
+	}
+	else if (std::holds_alternative<char>(varL) || std::holds_alternative<char>(varR)) {
+		varL = cast_to_char(varL);
+		varR = cast_to_char(varR);
+	}
 	else
-		throw std::runtime_error("Unknown types in + operator.");
+		throw TypeError("Impossible to implicitly cast type to numerical.");
 }
 
 template<typename T>
@@ -67,10 +73,10 @@ static VariantType numericalOperator(VariantType varL, VariantType varR, T opFun
 	cast_numerical(varL, varR);
 	VariantType result;
 	std::visit(overload{
-		           [&result, &opFunc](unsigned char& left, unsigned char& right) { result = opFunc(left, right); },
+		           [&result, &opFunc](char& left, char& right) { result = opFunc(left, right); },
 		           [&result, &opFunc](int& left, int& right) { result = opFunc(left, right); },
 		           [&result, &opFunc](float& left, float& right) { result = opFunc(left, right); },
-		           [&result, &opFunc](auto&, auto&) {}
+		           [](auto&, auto&) {}
 	           }, varL, varR);
 	return result;
 }
@@ -79,10 +85,10 @@ static void numericalUnaryOperator(VariantType& var, T opFunc)
 {
 	VariantType result;
 	std::visit(overload{
-		           [&opFunc](unsigned char& val) { opFunc(val); },
+		           [&opFunc](char& val) { opFunc(val); },
 		           [&opFunc](int& val) { opFunc(val); },
 		           [&opFunc](float& val) { opFunc(val); },
-		           [&opFunc](auto&) {}
+		           [](auto&) {}
 	           }, var);
 }
 
@@ -92,9 +98,9 @@ static VariantType numericalOperatorNonFloat(VariantType varL, VariantType varR,
 	cast_numerical(varL, varR);
 	VariantType result;
 	std::visit(overload{
-		           [&result, &opFunc](unsigned char& left, unsigned char& right) { result = opFunc(left, right); },
+		           [&result, &opFunc](char& left, char& right) { result = opFunc(left, right); },
 		           [&result, &opFunc](int& left, int& right) { result = opFunc(left, right); },
-		           [&result, &opFunc](auto&, auto&) {}
+		           [](auto&, auto&) {}
 	           }, varL, varR);
 	return result;
 }
@@ -111,7 +117,8 @@ Object& Object::operator+=(Object& rhs)
 {
 	VariantType varL = this->data, varR = rhs.data;
 	if (std::holds_alternative<std::string>(varL) || std::holds_alternative<std::string>(varR)) {
-		varL = cast_to_str(varL), varR = cast_to_str(varR);
+		varL = cast_to_str(varL);
+		varR = cast_to_str(varR);
 		this->data = VariantType(std::get<std::string>(varL) + std::get<std::string>(varR));
 	}
 	else {
@@ -290,7 +297,7 @@ Object* Object::operator()(Scope* scope, const std::vector<Object*>& argVec)
 	std::visit(overload{
 		           [&result, &scope, &argVec](Function& func) { result = func.eval(scope, argVec); },
 		           [&result, &argVec](ExternalFunction& external_function) { result = external_function(argVec); },
-		           [](auto&) { throw std::runtime_error("Not a callable object."); }
+		           [](auto&) { throw TypeError("Not a callable object."); }
 	           }, this->data);
 	return result;
 }
@@ -300,7 +307,7 @@ Object* Object::operator[](const std::vector<Object*>& indexVec)
 	Object* result = nullptr;
 	std::visit(overload{
 		           [&result, &indexVec](ArrayContainer& array_container) { result = array_container.getArray(indexVec); },
-		           [](auto&) { throw std::runtime_error("Not an array."); }
+		           [](auto&) { throw TypeError("Object does not accept a subscript."); }
 	           }, this->data);
 	return result;
 

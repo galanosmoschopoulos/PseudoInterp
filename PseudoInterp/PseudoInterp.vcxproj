@@ -132,6 +132,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,6 +143,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AST.cpp" />
+    <ClCompile Include="errors.cpp" />
+    <ClCompile Include="inputcleaner.cpp" />
     <ClCompile Include="lexer.cpp" />
     <ClCompile Include="object.cpp" />
     <ClCompile Include="operators.cpp" />
@@ -151,6 +154,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AST.h" />
+    <ClInclude Include="color.h" />
+    <ClInclude Include="errors.h" />
+    <ClInclude Include="inputcleaner.h" />
     <ClInclude Include="lexer.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="operators.h" />
