@@ -1,7 +1,7 @@
 #include "AST.h"
 #include <stdexcept>
 
-static Object& checkLval(const Object& obj)
+Object& checkLval(const Object& obj)
 {
 	if (!obj.isLval()) // We have to ensure that lhs is an lVal. I.e. (x + 5) = 2 is invalid, but x = 2 is valid
 	{
@@ -15,9 +15,11 @@ static void cleanTmps(const std::initializer_list<Object*> tmpList)
 {
 	for (const Object* oPtr : tmpList)
 	{
-		if (!oPtr->isLval()) // If they're not lValues (i.e. variables in the scope), delete them
-		{
-			delete oPtr;
+		if (oPtr) {
+			if (!oPtr->isLval()) // If they're not lValues (i.e. variables in the scope), delete them
+			{
+				delete oPtr;
+			}
 		}
 	}
 }
@@ -287,6 +289,11 @@ Object* nAryNode::eval(Scope* scope, bool)
 	default:
 		break;
 	}
+	cleanTmps({ mainObject });
+	for(Object* objPtr: nObjects)
+	{
+		cleanTmps({ objPtr });
+	}
 	return result;
 }
 
@@ -305,11 +312,12 @@ BinaryNode::BinaryNode(ASTNode* l, ASTNode* r, OperatorType opType, size_t posit
 
 Object* BinaryNode::eval(Scope* scope, const bool lSide)
 {
+	Object* result = nullptr;
 	Object* oLeft = left->eval(scope, (opType == OperatorType::ASSIGNMENT) ? (true) : (false));
+	if (! oLeft){ throw std::runtime_error("Null object pointer received."); }
 	// If we have the assignment operator, the left node should be passed with lSide=true. This allows it to be initialized if needed.
 	Object* oRight = right->eval(scope, lSide);
-	Object* result = nullptr;
-	if (!oLeft || !oRight) { throw std::runtime_error("Null object pointer received."); }
+	if (!oRight) { throw std::runtime_error("Null object pointer received."); }
 	switch (opType)
 	{
 	case OperatorType::ADDITION:
@@ -396,9 +404,6 @@ Object* UnaryNode::eval(Scope* scope, bool)
 	Object tmpObj;
 	switch (opType)
 	{
-	case OperatorType::OUTPUT:
-		result = new Object(outputOp(*obj));
-		break;
 	case OperatorType::NOT:
 		result = new Object(!*obj);
 		break;
@@ -432,12 +437,6 @@ Object* UnaryNode::eval(Scope* scope, bool)
 	return result;
 }
 
-Object& UnaryNode::outputOp(Object& obj)
-{
-	std::cout << obj.toStr() << '\n';
-	return obj;
-}
-
 LiteralNode::LiteralNode() = default;
 
 LiteralNode::~LiteralNode()
@@ -468,6 +467,11 @@ Object* IDNode::eval(Scope* scope, const bool lSide)
 	if (forceRval) // If it is forced to be an rval
 		obj->setLval(false);
 	return obj;
+}
+
+std::string IDNode::getID()
+{
+	return id;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------------------*/

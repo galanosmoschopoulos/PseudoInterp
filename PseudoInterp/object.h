@@ -2,8 +2,10 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <functional>
 #include <variant>
 #include <map>
+#include <stack>
 #include "AST.h"
 #include "scope.h"
 
@@ -11,10 +13,10 @@ class Object;
 class Function;
 class Scope;
 class ArrayContainer;
-class ArrayConstructor;
+class StackContainer;
 class VariantValueType;
-using vecOfPtrs = std::vector<std::shared_ptr<Object>>;
-using VariantType = std::variant<int, std::string, bool, ArrayContainer, ArrayConstructor, Function>;
+using ExternalFunction = std::function<Object* (const std::vector<Object*>&)>;
+using VariantType = std::variant<int, std::string, bool, float, unsigned char, ArrayContainer, StackContainer, Function, ExternalFunction>;
 
 class ASTNode;
 class CodeBlock;
@@ -23,16 +25,14 @@ enum class ObjectType
 {
 	UNDEFINED,
 	INT,
+	FLOAT,
+	CHAR,
 	STR,
 	ARR,
+	STACK,
 	FUNC,
-	ARRAY_CONSTRUCTOR
-};
-
-inline static std::map<ObjectType, std::string> typeString = {
-	{ObjectType::INT, "int"},
-	{ObjectType::STR, "std::string"},
-	{ObjectType::ARR, "array"}
+	BOOL,
+	EXTERNAL_FUNCTION
 };
 
 class ArrayContainer
@@ -42,9 +42,17 @@ public:
 	explicit ArrayContainer(const std::vector<Object*>&);
 	Object* getArray(const std::vector<Object*>&) const;
 private:
-	vecOfPtrs* vecPtr = nullptr;
+	std::vector<std::unique_ptr<Object>>* vecPtr = nullptr;
 };
-
+class StackContainer
+{
+public:
+	StackContainer(const std::vector<Object*>&);
+	Object* push(const std::vector<Object*>&) const;
+	[[nodiscard]] Object* pop(const std::vector<Object*>&) const;
+private:
+	std::stack<std::unique_ptr<Object>>* stackPtr = nullptr;
+};
 class Function
 {
 public:
@@ -56,24 +64,11 @@ private:
 	std::vector<ASTNode*> paramVec{};
 	int definedFuncLevel = 0;
 };
-
-class ArrayConstructor
-{
-public:
-	ArrayConstructor();
-	Object* eval(const std::vector<Object*>& argVec) const;
-};
-
 class Object
 {
 public:
 	Object();
-	explicit Object(std::string);
-	explicit Object(int);
-	explicit Object(const Function&);
-	explicit Object(const ArrayContainer&);
-	explicit Object(const ArrayConstructor&);
-
+	Object(const auto& val) { data = val; }
 	[[nodiscard]] bool isLval() const;
 	void setLval(bool isIt);
 	VariantType data;
@@ -110,7 +105,7 @@ public:
 	std::string toStr();
 
 private:
-	ObjectType currentType = ObjectType::UNDEFINED;
+	//ObjectType currentType = ObjectType::UNDEFINED;
 	bool lval = false;
 	ArrayContainer& getArrayContainer();
 };

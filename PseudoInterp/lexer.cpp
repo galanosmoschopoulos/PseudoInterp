@@ -18,7 +18,7 @@ void Lexer::setInput(const std::string& strIn)
 	str = preprocessStr(originalStr);
 }
 
-void Lexer::scanToken() { tokenListIndex++; } // Goes to next token
+void Lexer::scanToken(const int n) { tokenListIndex+=n; } // Goes to next token
 Token Lexer::lookForw(const size_t i) { return tokenList[tokenListIndex + i]; } // Returns the ith next token
 Token Lexer::getCurrToken() { return Lexer::lookForw(0); } // Returns current token
 
@@ -57,8 +57,16 @@ void Lexer::lexInput()
 			tokenList.emplace_back("", TokenType::EOFILE, i);
 			break;
 		}
-		bool foundFixedToken = false;
 		std::string tmpLexeme;
+		if(str[i] == '.')
+		{
+			tmpLexeme.push_back(str[i++]);
+			while (isdigit(str[i]) && i < str.size()) // Store all continuous digits
+				tmpLexeme.push_back(str[i++]);
+			tokenList.emplace_back(tmpLexeme, TokenType::FLOAT_LIT, i - tmpLexeme.size()); // Add a num literal token
+		}
+
+		bool foundFixedToken = false;
 		for (TokenDescriptor& td : fixedTokenList) // Check every fixed token (i.e. keywords)
 		{
 			size_t p = 0;
@@ -78,7 +86,7 @@ void Lexer::lexInput()
 			TokenType tType = TokenType::INT_LIT;
 			while (isdigit(str[i]) && i < str.size()) // Store all continuous digits
 				tmpLexeme.push_back(str[i++]);
-			if(str[i] == '.')
+			if (str[i] == '.')
 			{
 				tType = TokenType::FLOAT_LIT;
 				tmpLexeme.push_back(str[i++]);
@@ -93,6 +101,91 @@ void Lexer::lexInput()
 			while (isalnum(str[i]) || str[i] == '_') // If it continues with alphanumeric or _
 				tmpLexeme.push_back(str[i++]);
 			tokenList.emplace_back(tmpLexeme, TokenType::ID, i - tmpLexeme.size()); // Add identifier token
+		}
+		else if (str[i] == '\'')
+		{
+			i++;
+			tokenList.emplace_back(std::string(1, str[i]), TokenType::CHAR_LIT, i - tmpLexeme.size());
+			if (str[++i] != '\'') throw std::runtime_error("Lexing error: char literal not defined correctly.");
+			i++;
+		}
+		else if (str[i] == '\"')
+		{
+			i++;
+			while (str[i] != '\"')
+			{
+				if (str[i] == '\\')
+				{
+#define IS_OCTAL(N)((N) >= '0' && (N) <= '7')
+#define IS_HEX(N)(((N) >= '0' && (N) <= '9') || ((N) >= 'A' && (N) <= 'F') || ((N) >= 'a' && (N) <= 'f'))
+					i++;
+					if (IS_OCTAL(str[i]))
+					{
+						int charNum = 0;
+						while (IS_OCTAL(str[i]))
+						{
+							charNum = 8 * charNum + str[i++] - '0';
+						}
+						tmpLexeme.push_back(static_cast<char>(charNum));
+					}
+					else if (std::tolower(str[i]) == 'x')
+					{
+						i++;
+						int charNum = 0;
+						while (IS_HEX(str[i]))
+						{
+							charNum = 16 * charNum + str[i++] - '0';
+						}
+						tmpLexeme.push_back(static_cast<char>(charNum));
+					}
+					else {
+						switch (str[i])
+						{
+						case 'n':
+							tmpLexeme.push_back('\n');
+							break;
+						case 't':
+							tmpLexeme.push_back('\t');
+							break;
+						case 'a':
+							tmpLexeme.push_back('\a');
+							break;
+						case 'b':
+							tmpLexeme.push_back('\b');
+							break;
+						case 'f':
+							tmpLexeme.push_back('\f');
+							break;
+						case 'r':
+							tmpLexeme.push_back('\r');
+							break;
+						case 'v':
+							tmpLexeme.push_back('\v');
+							break;
+						case '\\':
+							tmpLexeme.push_back('\\');
+							break;
+						case '\?':
+							tmpLexeme.push_back('\?');
+							break;
+						case '\'':
+							tmpLexeme.push_back('\'');
+							break;
+						case '\"':
+							tmpLexeme.push_back('\"');
+							break;
+						default:
+							throw std::runtime_error("Lexing error: unknown ASCII escape sequence.");
+							break;
+						}
+						i++;
+					}
+				}
+				else
+					tmpLexeme.push_back(str[i++]);
+			}
+			i++;
+			tokenList.emplace_back(tmpLexeme, TokenType::STRING_LIT, i - tmpLexeme.size()); // Add identifier token
 		}
 
 		else if (isspace(str[i]))
@@ -159,7 +252,7 @@ TokenType TokenDescriptor::getOppositeType() const
 	case TokenType::R_PAREN: return TokenType::L_PAREN;
 	case TokenType::L_SQ_BRACKET: return TokenType::R_SQ_BRACKET;
 	case TokenType::R_SQ_BRACKET: return TokenType::L_SQ_BRACKET;
-	default: return TokenType::UNKNOWN;
+	default: return TokenType::NEWLINE;
 	}
 }
 

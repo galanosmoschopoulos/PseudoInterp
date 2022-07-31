@@ -38,6 +38,7 @@ public:
 	void setScopeLevel(int);
 	void setFuncLevel(int);
 	void addObj(const Object& obj, const std::string& id);
+	void addObj(Object*, const std::string& id);
 	Object* getObj(const std::string& id);
 	[[nodiscard]] bool checkObj(const std::string& id);
 	Scope* getRestricted(int);
@@ -47,5 +48,6 @@ private:
 	ObjMap scopeMap{};
 	int scopeLevel = 0;
 	int funcLevel = 0;
+	bool derivativeScope = false;
 };
 

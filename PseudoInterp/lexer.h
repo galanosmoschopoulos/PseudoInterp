@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -43,6 +44,7 @@ enum class TokenType
 	RSHFT,
 	INT_LIT,
 	FLOAT_LIT,
+	CHAR_LIT,
 	ID,
 	WHSPACE,
 	TAB,
@@ -56,6 +58,9 @@ enum class TokenType
 	FROM,
 	TO,
 	EOFILE,
+	STRING_LIT,
+	TRUE_LIT,
+	FALSE_LIT,
 	UNKNOWN
 };
 
@@ -93,9 +98,16 @@ public:
 	void setInput(const std::string&);
 	Token getCurrToken();
 	Token lookForw(size_t);
-	void scanToken();
+	void scanToken(int n = 1);
 	void lexInput();
 	std::string getErrorLine(size_t, int offset = 0) const;
+	void printTokenList()
+	{
+		for(auto t : tokenList)
+		{
+			std::cout << t.getPos() << ":\t" << t.getLexeme() << '\n';
+		}
+	}
 private:
 	std::vector<Token> tokenList;
 	size_t tokenListIndex = 0;
@@ -132,6 +144,7 @@ private:
 		TokenDescriptor("<", TokenType::LESS),
 		TokenDescriptor(">", TokenType::GRE),
 		TokenDescriptor(",", TokenType::COMMA),
+		TokenDescriptor(".", TokenType::DOT),
 		TokenDescriptor("\t", TokenType::TAB),
 		TokenDescriptor("\n", TokenType::NEWLINE),
 		TokenDescriptor("while", TokenType::WHILE),
@@ -141,7 +154,8 @@ private:
 		TokenDescriptor("for", TokenType::FOR),
 		TokenDescriptor("from", TokenType::FROM),
 		TokenDescriptor("to", TokenType::TO),
-		TokenDescriptor("output", TokenType::OUTPUT),
+		TokenDescriptor("true", TokenType::TRUE_LIT),
+		TokenDescriptor("false", TokenType::FALSE_LIT),
 		TokenDescriptor("return", TokenType::RETURN_TOK),
 		TokenDescriptor("function", TokenType::FUNCTION_DEF)
 	};

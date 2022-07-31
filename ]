@@ -9,53 +9,31 @@ ObjKey::ObjKey(const int scopeLevel, const int funcLevel, std::string ID) : scop
 
 Scope::Scope()
 {
-	// Insert some "external" functions, like the input/output system and the constructors for Stacks, etc.
-	if (!derivativeScope) {
-		*IDNode("Array", 0).eval(this, true) =
-			Object([](const std::vector<Object*>& argVec) { return new Object(ArrayContainer(argVec)); });
-		*IDNode("Stack", 0).eval(this, true) =
-			Object([](const std::vector<Object*>& argVec) { return new Object(StackContainer(argVec)); });
-		*IDNode("output", 0).eval(this, true) =
+	*IDNode("Array", 0).eval(this, true) =
+			Object([](const std::vector<Object*>& argVec){ return new Object(ArrayContainer(argVec)); });
+	*IDNode("Stack", 0).eval(this, true) =
+			Object([](const std::vector<Object*>& argVec){ return new Object(StackContainer(argVec)); });
+	*IDNode("output", 0).eval(this, true) =
 			Object([](const std::vector<Object*>& argVec)
+			{
+				for(Object* obj : argVec)
 				{
-					for (Object* obj : argVec)
-					{
-						std::cout << obj->toStr() << ' ';
-					}
-					std::cout << '\n';
-					return nullptr;
-				});
-		*IDNode("input", 0).eval(this, true) =
+					std::cout << obj->toStr() << ' ';
+				}
+				std::cout << '\n';
+				return nullptr;
+			});
+	*IDNode("output", 0).eval(this, true) =
 			Object([](const std::vector<Object*>& argVec)
+			{
+				for(Object* obj : argVec)
 				{
-					if (argVec.size() > 1) throw std::runtime_error("Wrong number of arguments!");
-					std::string inputStr;
-					std::getline(std::cin, inputStr);
-					Object* inputObj = nullptr;
-					bool isNum = true;
-					int inputNum = 0;
-					size_t pos = 0;
-					try
-					{
-						inputNum = std::stoi(inputStr, &pos);
-					}
-					catch (std::invalid_argument&)
-					{
-						isNum = false;
-					}
-					catch (std::out_of_range&)
-					{
-						isNum = false;
-					}
-					if (pos != inputStr.length()) isNum = false;
+					std::cout << obj->toStr() << ' ';
+				}
+				std::cout << '\n';
+				return nullptr;
+			});
 
-					if (isNum) inputObj = new Object(inputNum);
-					else inputObj = new Object(inputStr);
-					if (argVec.size() == 1)
-						checkLval(*argVec[0] = *inputObj);
-					return inputObj;
-				});
-	}
 };
 
 ObjMap& Scope::getMap()
@@ -132,7 +110,6 @@ bool Scope::checkObj(const std::string& id)
 Scope* Scope::getRestricted(const int maxFuncLevel)
 {
 	const auto newScope = new Scope;
-	newScope->derivativeScope = true;
 	ObjMap& newMap = newScope->getMap();
 	for (auto itr = scopeMap.begin(); itr != scopeMap.end(); ++itr)
 	{

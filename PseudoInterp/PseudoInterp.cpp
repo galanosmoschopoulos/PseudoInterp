@@ -1,18 +1,18 @@
 #include <iostream>
 #include <string>
-
+#include <sstream>
+#include <fstream>
 #include "AST.h"
 #include "parser.h"
 #include "scope.h"
+
+#define VER "1.0"
 
 void interpret(const std::string& inputStr)
 {
 	try
 	{
-
 		Scope globalScope;
-		*IDNode("Array", 0).eval(&globalScope, true) = Object(ArrayConstructor());
-		
 		Parser parser;
 		const CodeBlock* mainBlock = parser.getAST(inputStr);
 		mainBlock->eval(&globalScope, false);
@@ -20,14 +20,67 @@ void interpret(const std::string& inputStr)
 	}
 	catch (std::runtime_error& re)
 	{
-		std::cout << re.what() << std::endl;
+		std::cerr << re.what() << std::endl;
 	}
 }
 
-int main()
+int main(int argc, char** argv)
 {
-	interpret("N = 10\nfunction fib(n)\n\ta = 0\n\tb = 1\n\tfor i from 0 to n-1\n\t\ttmp = b\n\t\tb = a+b\n\t\ta=tmp\n\treturn a\noutput fib(N)");
-	interpret("N = 10\nfunction fib(n)\n\tif n == 0\n\t\treturn 0\n\telif n == 1\n\t\treturn 1\n\treturn fib(n-1)+fib(n-2)\noutput fib(N)");
-	interpret("N = 10\nfunction fib(n)\n\tarr = Array(n+1)\n\tarr[0] = 0\n\tarr[1]=1\n\tfor i from 2 to n\n\t\tarr[i] = arr[i-1]+arr[i-2]\n\treturn arr[n]\noutput fib(N)");
+	struct commandLineFlags
+	{
+		int help : 1 = 0;
+		int ver : 1 = 0;
+		int inputFile : 1 = 0;
+		int inputFileSet : 1 = 0;
+	} flags;
+	std::string inputFilePath;
+	try {
+		while(--argc > 0 && (*++argv)[0] == '-')
+		{
+			unsigned char c;
+			while (c = *++argv[0])
+			{
+				switch (std::tolower(c))
+				{
+				case '\?':
+					flags.help = 1;
+					break;
+				case 'v':
+					flags.ver = 1;
+					break;
+				case 'i':
+					flags.inputFile = 1;
+					break;
+				default:
+					throw std::runtime_error("Illegal command line argument: " + std::string(1, c));
+				}
+			}
+			if(flags.inputFile)
+			{
+				flags.inputFile = 0;
+				if (flags.inputFileSet) throw std::runtime_error("Input file already set.");
+				flags.inputFileSet = 1;
+				if (argc == 1) throw std::runtime_error("Input file path expected.");
+				inputFilePath = *++argv;
+				--argc;
+			}
+		}
+		if (argc != 0) throw std::runtime_error("Illegal command line arguments.");
+		if(flags.help) std::cout << "IB pseudocode interpreter made by Galanos Moschopoulos for the Computer Science IA.\nUsage\t-? : Prints this message\n\t-I : Sets input code file\n\t-V : Prints version number\n";
+		if(flags.ver) std::cout << "Version " << VER << '\n';
+
+		if (flags.inputFileSet) {
+			std::ifstream inputFile(inputFilePath);
+			if (!inputFile.is_open()) throw std::runtime_error("Error opening file \"" + inputFilePath + "\"");
+			std::stringstream fileBuffer;
+			fileBuffer << inputFile.rdbuf();
+			interpret(fileBuffer.str());
+			inputFile.close();
+		}
+	}
+	catch(std::runtime_error &re)
+	{
+		std::cerr << re.what() << '\n';
+	}
 	return 0;
 }

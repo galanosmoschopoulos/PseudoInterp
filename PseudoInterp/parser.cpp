@@ -89,41 +89,6 @@ void Parser::checkNewLine()
 	lexer.scanToken();
 }
 
-Statement* Parser::parseFunctionDef()
-{
-	// Follows the grammar: function ID(ID, ID, ..., ID)\nBLOCK
-	const size_t pos = lexer.getCurrToken().getPos();
-	lexer.scanToken();
-	if (lexer.getCurrToken().getType() != TokenType::ID)
-		throw std::runtime_error(getParsingError("token is not an identifier"));
-	ASTNode* funcIdNode = new IDNode(lexer.getCurrToken().getLexeme(), lexer.getCurrToken().getPos());
-	lexer.scanToken();
-
-	if (lexer.getCurrToken().getType() != TokenType::L_PAREN)
-		throw std::runtime_error(getParsingError("( expected"));
-
-	std::vector<ASTNode*> paramVec;
-	if (lexer.lookForw(1).getType() != TokenType::R_PAREN)
-	{
-		do
-		{
-			lexer.scanToken();
-			if (lexer.getCurrToken().getType() != TokenType::ID)
-				throw std::runtime_error(getParsingError("token is not an identifier"));
-			paramVec.push_back(new IDNode(lexer.getCurrToken().getLexeme(), lexer.getCurrToken().getPos()));
-			lexer.scanToken();
-		}
-		while (lexer.getCurrToken().getType() == TokenType::COMMA);
-	}
-	else lexer.scanToken();
-
-	if (lexer.getCurrToken().getType() != TokenType::R_PAREN)
-		throw std::runtime_error(getParsingError(") expected - matching parentheses not found"));
-	lexer.scanToken();
-	checkNewLine();
-	CodeBlock* block = parseBlock();
-	return new FunctionDefStatement(funcIdNode, paramVec, block, pos);
-}
 
 Statement* Parser::parseReturn()
 {
@@ -299,15 +264,52 @@ ASTNode* Parser::parsePostfixArgList(precedenceGroup* currGroup)
 						(this->*precedenceTab[COMMA_PRECEDENCE + 1].parserFunc)(precedenceTab + COMMA_PRECEDENCE + 1));
 				}
 				while (lexer.getCurrToken().getType() == TokenType::COMMA);
+				if (lexer.getCurrToken().getType() != closingToken) throw std::runtime_error(getParsingError(("closing token expected")));
+				lexer.scanToken();
+
 			}
-			else lexer.scanToken();
-			if (lexer.getCurrToken().getType() != closingToken) throw std::runtime_error(getParsingError(("closing token expected")));
-			lexer.scanToken();
+			else lexer.scanToken(2);
 			node = new nAryNode(node, currGroup->findOp[currToken], nOperands, pos);
 		}
 		else
 			return node;
 	}
+}
+
+Statement* Parser::parseFunctionDef()
+{
+	// Follows the grammar: function ID(ID, ID, ..., ID)\nBLOCK
+	const size_t pos = lexer.getCurrToken().getPos();
+	lexer.scanToken();
+	if (lexer.getCurrToken().getType() != TokenType::ID)
+		throw std::runtime_error(getParsingError("token is not an identifier"));
+	ASTNode* funcIdNode = new IDNode(lexer.getCurrToken().getLexeme(), lexer.getCurrToken().getPos());
+	lexer.scanToken();
+
+	if (lexer.getCurrToken().getType() != TokenType::L_PAREN)
+		throw std::runtime_error(getParsingError("( expected"));
+
+	std::vector<ASTNode*> paramVec;
+	if (lexer.lookForw(1).getType() != TokenType::R_PAREN)
+	{
+		do
+		{
+			lexer.scanToken();
+			if (lexer.getCurrToken().getType() != TokenType::ID)
+				throw std::runtime_error(getParsingError("token is not an identifier"));
+			paramVec.push_back(new IDNode(lexer.getCurrToken().getLexeme(), lexer.getCurrToken().getPos()));
+			lexer.scanToken();
+		}
+		while (lexer.getCurrToken().getType() == TokenType::COMMA);
+	}
+	else lexer.scanToken();
+
+	if (lexer.getCurrToken().getType() != TokenType::R_PAREN)
+		throw std::runtime_error(getParsingError(") expected - matching parentheses not found"));
+	lexer.scanToken();
+	checkNewLine();
+	CodeBlock* block = parseBlock();
+	return new FunctionDefStatement(funcIdNode, paramVec, block, pos);
 }
 
 
@@ -336,8 +338,29 @@ ASTNode* Parser::parsePrimary(precedenceGroup*)
 	const size_t pos = lexer.getCurrToken().getPos();
 	switch (lexer.getCurrToken().getType())
 	{
+	case TokenType::TRUE_LIT:
+		node = new LiteralNode(true, pos);
+		lexer.scanToken();
+		break;
+	case TokenType::FALSE_LIT:
+		node = new LiteralNode(false, pos);
+		lexer.scanToken();
+		break;
 	case TokenType::INT_LIT: // If number literal, convert lexeme to int
 		node = new LiteralNode(std::stoi(lexer.getCurrToken().getLexeme()), pos);
+		lexer.scanToken();
+		break;
+	case TokenType::FLOAT_LIT: // If number literal, convert lexeme to int
+		node = new LiteralNode(std::stof(lexer.getCurrToken().getLexeme()), pos);
+		lexer.scanToken();
+		break;
+	case TokenType::CHAR_LIT: // If number literal, convert lexeme to int
+		node = new LiteralNode(static_cast<unsigned char>(lexer.getCurrToken().getLexeme()[0]), pos);
+		lexer.scanToken();
+		break;
+
+	case TokenType::STRING_LIT:
+		node = new LiteralNode(lexer.getCurrToken().getLexeme(), pos);
 		lexer.scanToken();
 		break;
 	case TokenType::L_PAREN:

@@ -14,7 +14,7 @@ class Scope;
 enum class OperatorType;
 
 static void cleanTmps(std::initializer_list<Object*>);
-static Object& checkLval(const Object& obj);
+Object& checkLval(const Object& obj);
 
 class CodeBlock
 {
@@ -175,6 +175,7 @@ public:
 	~IDNode() override;
 	IDNode(std::string, size_t);
 	Object* eval(Scope*, bool lSide = false) override;
+	std::string getID();
 private:
 	std::string id;
 };
@@ -187,7 +188,6 @@ public:
 	UnaryNode(ASTNode*, OperatorType, size_t);
 	Object* eval(Scope*, bool lSide = false) override;
 private:
-	static Object& outputOp(Object& obj);
 	OperatorType opType = OperatorType::UNKNOWN;
 	ASTNode* operand = nullptr;
 };

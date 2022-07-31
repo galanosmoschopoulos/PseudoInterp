@@ -36,6 +36,7 @@ enum class OperatorType
 	POST_DECR,
 	FUNCTION_CALL,
 	SUBSCRIPT,
+	MEMBER_ACCESS,
 	OUTPUT,
 	UNKNOWN
 };
@@ -149,6 +150,12 @@ private:
 				{TT::DOUBLE_MINUS, OT::POST_DECR}
 			},
 			&Parser::parseUnaryPostfix
+		},
+		{
+			{
+				{TT::DOT, OT::MEMBER_ACCESS}
+			},
+			&Parser::parseBinLeft
 		},
 
 		{
