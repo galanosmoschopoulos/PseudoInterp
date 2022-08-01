@@ -1,9 +1,6 @@
 #include "parser.h"
 #include "errors.h"
-#include <string>
-#include <map>
-#include <vector>
-#include <sstream>
+#include "object.h"
 
 Parser::Parser() = default;
 
@@ -358,12 +355,12 @@ ASTNode* Parser::parsePrimary(precedenceGroup*)
 		lexer.scanToken();
 		break;
 	case TokenType::CHAR_LIT: // If number literal, convert lexeme to int
-		node = new LiteralNode(static_cast<unsigned char>(lexer.getCurrToken().getLexeme()[0]), pos);
+		node = new LiteralNode(lexer.getCurrToken().getLexeme()[0], pos);
 		lexer.scanToken();
 		break;
 
 	case TokenType::STRING_LIT:
-		node = new LiteralNode(lexer.getCurrToken().getLexeme(), pos);
+		node = new LiteralNode(StringContainer(lexer.getCurrToken().getLexeme()), pos);
 		lexer.scanToken();
 		break;
 	case TokenType::L_PAREN:

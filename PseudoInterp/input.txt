@@ -1,6 +1,39 @@
+output("Enter size of array")
 N = input()
+initialArr = Array(N)
 for i from 0 to N-1
-	s = ""
-	for j from 0 to i
-		s += '*'
-	output(s)
+	output("element [" + i + "]")
+	input(initialArr[i])
+
+function bubbleSort(arr, N)
+	alldone = false
+	while !alldone
+		alldone = true
+		for i from 0 to N-2
+			if arr[i] > arr[i+1]
+				alldone = false
+				tmp = arr[i]
+				arr[i] = arr[i+1]
+				arr[i+1] = tmp
+	return arr
+
+function arrToStr(arr, N)
+	str = ""
+	for i from 0 to N-1
+		str += arr[i] + " "
+	return str
+// Comment
+function selectionSort(arr, N) // This is a comment
+	for i from 0 to N-2
+		min_idx = i
+		for j from i+1 to N-1
+			if arr[j] < arr[min_idx]
+				min_idx = j
+		tmp = arr[i]
+		arr[i] = arr[min_idx]
+		arr[min_idx] = tmp
+	return arr
+	
+output("Initial: " + arrToStr(initialArr, N))
+output("Sorted (bubble sort): " + arrToStr(bubbleSort(initialArr, N), N))
+output("Sorted (selection sort): " + arrToStr(selectionSort(initialArr, N), N))

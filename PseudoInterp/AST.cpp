@@ -1,6 +1,5 @@
 #include "AST.h"
 #include "errors.h"
-#include <stdexcept>
 
 Object& checkLval(const Object& obj)
 {
@@ -291,7 +290,7 @@ Object* nAryNode::eval(Scope* scope, bool)
 	}
 	catch (CustomError& ce)
 	{
-		ce.setPos(pos);
+		if(!ce.isPosSet()) ce.setPos(pos);
 		throw;
 	}
 	cleanTmps({mainObject});
@@ -393,7 +392,7 @@ Object* BinaryNode::eval(Scope* scope, const bool lSide)
 	}
 	catch (CustomError& ce)
 	{
-		ce.setPos(pos);
+		if(!ce.isPosSet()) ce.setPos(pos);
 		throw;
 	}
 
@@ -450,7 +449,7 @@ Object* UnaryNode::eval(Scope* scope, bool)
 	}
 	catch (CustomError& ce)
 	{
-		ce.setPos(pos);
+		if(!ce.isPosSet()) ce.setPos(pos);
 		throw;
 	}
 

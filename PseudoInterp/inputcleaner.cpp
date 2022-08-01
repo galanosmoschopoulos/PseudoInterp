@@ -1,4 +1,6 @@
 ﻿#include "inputcleaner.h"
+#include <algorithm>
+#include <sstream>
 
 InputCleaner::InputCleaner() = default;
 
@@ -20,6 +22,11 @@ std::string InputCleaner::clean()
 	int deletedLines = 0;
 	while (std::getline(ss, subStr, '\n'))
 	{
+		if(subStr.compare(0, 2, "//") == 0) // Removes all-comment lines
+		{
+				deletedLines++;
+				break;
+		}
 		if (std::ranges::any_of(subStr, isgraph))
 		{
 			// If the string contains graphic characters (i.e. not just spaces)
@@ -39,6 +46,7 @@ std::string InputCleaner::getErrorLine(const size_t errPos) const
 	size_t currLen = 0, nlines = 0, posInLine = 0;
 	for (const auto& subStr : subStrVec)
 	{
+		// Given a pos in a multi-line string, it finds the num of line and the pos in that line
 		if (currLen + subStr.size() <= errPos)
 		{
 			currLen += subStr.size();
@@ -50,18 +58,18 @@ std::string InputCleaner::getErrorLine(const size_t errPos) const
 			break;
 		}
 	}
-	if (nlines >= subStrVec.size())
+	if (nlines >= subStrVec.size()) // If it's at the end of file
 	{
 		nlines = subStrVec.size() - 1;
 		posInLine = subStrVec.rbegin()->size() - 1;
 	}
-	else if (posInLine >= subStrVec[nlines].size()) posInLine = subStrVec[nlines].size() - 1;
+	else if (posInLine >= subStrVec[nlines].size()) posInLine = subStrVec[nlines].size() - 1; // And account for this weird error
 
 	ss << "Line: " << nlines + sumOfDeletedStrs[nlines] + 1 << '\n';
 	std::string s = subStrVec[nlines];
-	std::ranges::replace(s.begin(), s.end(), '\t', ' ');
+	std::ranges::replace(s.begin(), s.end(), '\t', ' '); // Replace tabs with space to save space in the error printout
 	ss << s;
-	for (size_t i = 0; i < posInLine; ++i) ss << ' ';
+	for (size_t i = 0; i < posInLine; ++i) ss << ' '; // Print the '^' symbol to mark exact error location
 	ss << "^";
 	return ss.str();
 }

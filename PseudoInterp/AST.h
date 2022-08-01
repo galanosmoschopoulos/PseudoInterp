@@ -2,9 +2,7 @@
 #include "object.h"
 #include "parser.h"
 #include "scope.h"
-#include <stdexcept>
 #include <vector>
-#include <initializer_list>
 
 class CodeBlock;
 class Statement;
@@ -157,7 +155,7 @@ public:
 	LiteralNode();
 	~LiteralNode() override;
 
-	explicit LiteralNode(auto val, size_t position) : literal(new Object(val))
+	explicit LiteralNode(auto val, const size_t position) : literal(new Object(val))
 	{
 		pos = position;
 	}

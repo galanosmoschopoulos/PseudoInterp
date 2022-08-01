@@ -4,19 +4,18 @@
 #include <memory>
 #include <functional>
 #include <variant>
-#include <map>
 #include <stack>
 #include "AST.h"
-#include "scope.h"
 
 class Object;
 class Function;
 class Scope;
 class ArrayContainer;
 class StackContainer;
+class StringContainer;
 class VariantValueType;
 using ExternalFunction = std::function<Object*(const std::vector<Object*>&)>;
-using VariantType = std::variant<int, std::string, bool, float, char, ArrayContainer, StackContainer, Function,
+using VariantType = std::variant<int, StringContainer, bool, float, char, ArrayContainer, StackContainer, Function,
                                  ExternalFunction>;
 
 class ASTNode;
@@ -46,11 +45,22 @@ private:
 	std::vector<std::unique_ptr<Object>>* vecPtr = nullptr;
 };
 
+class StringContainer
+{
+public:
+	StringContainer();
+	explicit StringContainer(const std::string&);
+	[[nodiscard]] Object* getChar(const std::vector<Object*>&) const;
+	[[nodiscard]] std::string getStr() const;
+private:
+	std::vector<std::unique_ptr<Object>>* vecPtr = nullptr;
+};
+
 class StackContainer
 {
 public:
-	StackContainer(const std::vector<Object*>&);
-	Object* push(const std::vector<Object*>&) const;
+	explicit StackContainer(const std::vector<Object*>&);
+	[[nodiscard]] Object* push(const std::vector<Object*>&) const;
 	[[nodiscard]] Object* pop(const std::vector<Object*>&) const;
 private:
 	std::stack<std::unique_ptr<Object>>* stackPtr = nullptr;
@@ -72,7 +82,7 @@ class Object
 {
 public:
 	Object();
-	Object(const auto& val) { data = val; }
+	explicit Object(const auto& val) { data = val; }
 	[[nodiscard]] bool isLval() const;
 	void setLval(bool isIt);
 	VariantType data;
@@ -107,9 +117,11 @@ public:
 	Object* operator[](const std::vector<Object*>&);
 	bool isTrue();
 	std::string toStr();
-
+	bool isPersistentType() const;
+	void setPersistentType(bool);
 private:
 	//ObjectType currentType = ObjectType::UNDEFINED;
 	bool lval = false;
+	bool persistentType = false;
 	ArrayContainer& getArrayContainer();
 };

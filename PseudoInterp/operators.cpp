@@ -10,13 +10,13 @@ struct overload : Ts...
 
 static VariantType cast_to_str(VariantType& var)
 {
-	std::string result;
+	StringContainer result;
 	std::visit(overload{
-		           [&result](bool& val) { result = (val) ? ("true") : ("false"); },
-		           [&result](char& val) { result = std::string(1, val); },
-		           [&result](int& val) { result = std::to_string(val); },
-		           [&result](float& val) { result = std::to_string(val); },
-		           [&result](std::string& i) { result = i; },
+		           [&result](bool& val) { result = StringContainer((val) ? ("true") : ("false")); },
+		           [&result](char& val) { result = StringContainer(std::string(1, val)); },
+		           [&result](int& val) { result = StringContainer(std::to_string(val)); },
+		           [&result](float& val) { result = StringContainer(std::to_string(val)); },
+		           [&result](StringContainer i) { result = StringContainer(i); },
 		           [](auto&) { throw TypeError("Cannot cast to string."); }
 	           }, var);
 	return VariantType(result);
@@ -123,6 +123,8 @@ Object& Object::operator=(const Object& obj2)
 {
 	if (this == &obj2)
 		return *this;
+	if (this->data.index() != obj2.data.index() && this->isPersistentType())
+		throw TypeError("The type of the left hand side object cannot be changed.");
 	this->data = obj2.data;
 	return *this;
 }
@@ -130,11 +132,11 @@ Object& Object::operator=(const Object& obj2)
 Object& Object::operator+=(Object& rhs)
 {
 	VariantType varL = this->data, varR = rhs.data;
-	if (std::holds_alternative<std::string>(varL) || std::holds_alternative<std::string>(varR))
+	if (std::holds_alternative<StringContainer>(varL) || std::holds_alternative<StringContainer>(varR))
 	{
 		varL = cast_to_str(varL);
 		varR = cast_to_str(varR);
-		this->data = VariantType(std::get<std::string>(varL) + std::get<std::string>(varR));
+		this->data = StringContainer(std::get<StringContainer>(varL).getStr() + std::get<StringContainer>(varR).getStr());
 	}
 	else
 	{
@@ -255,8 +257,8 @@ Object operator<(Object& lhs, Object& rhs)
 {
 	VariantType varL = lhs.data, varR = rhs.data;
 	Object result;
-	if (std::holds_alternative<std::string>(varL) && std::holds_alternative<std::string>(varR))
-		result.data = std::get<std::string>(varL) < std::get<std::string>(varR);
+	if (std::holds_alternative<StringContainer>(varL) && std::holds_alternative<StringContainer>(varR))
+		result.data = std::get<StringContainer>(varL).getStr() < std::get<StringContainer>(varR).getStr();
 	else
 		result.data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x < y; });
 	return result;
@@ -281,8 +283,8 @@ Object operator==(Object& lhs, Object& rhs)
 {
 	VariantType varL = lhs.data, varR = rhs.data;
 	Object result;
-	if (std::holds_alternative<std::string>(varL) && std::holds_alternative<std::string>(varR))
-		result.data = std::get<std::string>(varL) == std::get<std::string>(varR);
+	if (std::holds_alternative<StringContainer>(varL) && std::holds_alternative<StringContainer>(varR))
+		result.data = std::get<StringContainer>(varL).getStr() == std::get<StringContainer>(varR).getStr();
 	else
 		result.data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x == y; });
 	return result;
@@ -323,10 +325,8 @@ Object* Object::operator[](const std::vector<Object*>& indexVec)
 {
 	Object* result = nullptr;
 	std::visit(overload{
-		           [&result, &indexVec](ArrayContainer& array_container)
-		           {
-			           result = array_container.getArray(indexVec);
-		           },
+		           [&result, &indexVec](ArrayContainer& array_container){ result = array_container.getArray(indexVec); },
+		           [&result, &indexVec](StringContainer& string_container){ result = string_container.getChar(indexVec); },
 		           [](auto&) { throw TypeError("Object does not accept a subscript."); }
 	           }, this->data);
 	return result;

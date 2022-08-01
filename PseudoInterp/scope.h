@@ -1,8 +1,7 @@
 #pragma once
 #include <string>
 #include <map>
-#include <stdexcept>
-#include <iostream>
+#include <stack>
 #include "object.h"
 
 class Object;

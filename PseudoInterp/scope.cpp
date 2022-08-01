@@ -1,7 +1,8 @@
 #include "scope.h"
-
-#include <ranges>
 #include "errors.h"
+#include <iostream>
+#include <ranges>
+
 ObjKey::ObjKey() = default;
 
 ObjKey::ObjKey(const int scopeLevel, const int funcLevel, std::string ID) : scopeLevel(scopeLevel),
@@ -53,7 +54,7 @@ Scope::Scope()
 				if (pos != inputStr.length()) isNum = false;
 
 				if (isNum) inputObj = new Object(inputNum);
-				else inputObj = new Object(inputStr);
+				else inputObj = new Object(StringContainer(inputStr));
 				if (argVec.size() == 1)
 					checkLval(*argVec[0] = *inputObj);
 				return inputObj;

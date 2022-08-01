@@ -1,6 +1,5 @@
 #include "object.h"
 #include "errors.h"
-#include <iostream>
 
 template <class... Ts>
 struct overload : Ts...
@@ -56,9 +55,51 @@ Object* ArrayContainer::getArray(const std::vector<Object*>& idxVec) const
 	if (currIdx >= vecPtr->size())
 		throw RangeError("Array subscript out of range.");
 	if (idxVec.size() == 1)
-		return (*vecPtr)[currIdx].get(); // Convert std::shared_ptr to raw pointer
+		return (*vecPtr)[currIdx].get(); // Convert std::unique_ptr to raw pointer
+
 	return (*(*vecPtr)[currIdx])[std::vector<Object*>(idxVec.begin() + 1, idxVec.end())];
 }
+
+StringContainer::StringContainer() = default;
+
+StringContainer::StringContainer(const std::string& str)
+{
+	vecPtr = new std::vector<std::unique_ptr<Object>>(str.length());
+	for(size_t i = 0; i != str.length(); i++)
+	{
+		const auto objPtr = new Object(str[i]);
+		objPtr->setLval(true);
+		objPtr->setPersistentType(true);
+		(*vecPtr)[i].reset(objPtr);
+	}
+}
+
+Object* StringContainer::getChar(const std::vector<Object*>& idxVec) const
+{
+	if (idxVec.size() != 1)
+		throw ArgumentError("Exactly 1 string subscript expected.");
+	size_t currIdx = 0;
+	if (const int* idx = std::get_if<int>(&idxVec[0]->data))
+	{
+		if (*idx >= 0) currIdx = static_cast<size_t>(*idx);
+		else throw ValueError("String subscript must be a non-negative integer.");
+	}
+	else throw TypeError("String subscript must be an integer.");
+	if (currIdx >= vecPtr->size())
+		throw RangeError("String subscript out of range.");
+	return (*vecPtr)[currIdx].get(); // Convert std::unique_ptr to raw pointer
+}
+
+std::string StringContainer::getStr() const
+{
+	std::string str;
+	for(const auto& charObj : *vecPtr)
+	{
+		str.push_back(std::get<char>(charObj->data));
+	}
+	return str;
+}
+
 
 StackContainer::StackContainer(const std::vector<Object*>& argVec)
 {
@@ -105,6 +146,7 @@ Object* Function::eval(Scope* scope, const std::vector<Object*>& argVec) const
 		*paramVec[i]->eval(newScope, true) = *argVec[i];
 	}
 	funcResult = block->eval(newScope, true);
+	
 	if (funcResult == nullptr) funcResult = new Object;
 
 	newScope->decrLevel();
@@ -153,8 +195,18 @@ std::string Object::toStr()
 		           [&result](char& val) { result = std::string(1, val); },
 		           [&result](int& val) { result = std::to_string(val); },
 		           [&result](float& val) { result = std::to_string(val); },
-		           [&result](std::string& i) { result = i; },
+		           [&result](StringContainer sc) { result = sc.getStr(); },
 		           [](auto&) { throw TypeError("Object does not have a string representation"); }
 	           }, data);
 	return result;
+}
+
+bool Object::isPersistentType() const
+{
+	return persistentType;
+}
+
+void Object::setPersistentType(const bool isIt)
+{
+	persistentType = isIt;
 }

@@ -42,10 +42,8 @@ enum class OperatorType
 };
 
 #include <map>
-#include "object.h"
 #include "lexer.h"
 #include "AST.h"
-#include "scope.h"
 
 class CodeBlock;
 class Statement;

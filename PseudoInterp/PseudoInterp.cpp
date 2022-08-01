@@ -49,7 +49,7 @@ int main(int argc, char** argv)
 	{
 		while (--argc > 0 && (*++argv)[0] == '-')
 		{
-			for (unsigned char c = *++argv[0]; c; c = *++argv[0])
+			for (char c = *++argv[0]; c; c = *++argv[0])
 			{
 				switch (std::tolower(c))
 				{

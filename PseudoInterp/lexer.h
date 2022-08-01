@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -61,6 +60,7 @@ enum class TokenType
 	STRING_LIT,
 	TRUE_LIT,
 	FALSE_LIT,
+	COMMENT,
 	UNKNOWN
 };
 
@@ -101,20 +101,13 @@ public:
 	void scanToken(int n = 1);
 	void lexInput();
 
-	void printTokenList() const
-	{
-		for (auto t : tokenList)
-		{
-			std::cout << t.getPos() << ":\t" << t.getLexeme() << '\n';
-		}
-	}
-
 private:
 	std::vector<Token> tokenList;
 	size_t tokenListIndex = 0;
 	std::string str;
 	std::vector<TokenDescriptor> fixedTokenList = {
 		// A list of keywords, relating lexeme to token type
+		TokenDescriptor("//", TokenType::COMMENT),
 		TokenDescriptor("+=", TokenType::PLUS_EQ),
 		TokenDescriptor("-=", TokenType::MINUS_EQ),
 		TokenDescriptor("*=", TokenType::STAR_EQ),

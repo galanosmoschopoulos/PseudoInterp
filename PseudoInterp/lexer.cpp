@@ -1,10 +1,9 @@
 #include "lexer.h"
 #include <string>
 #include <cctype>
-#include <iostream>
 #include <sstream>
 #include <algorithm>
-#include <tuple>
+
 Lexer::Lexer() = default;
 
 Lexer::Lexer(std::string strIn) : str(std::move(strIn))
@@ -51,6 +50,11 @@ void Lexer::lexInput()
 			if (td.getLen() == p) // If all match
 			{
 				foundFixedToken = true;
+				if(td.getType() == TokenType::COMMENT)
+				{
+					for (; str[i] != '\n' && i < str.size(); i++);
+					break;
+				}
 				tokenList.emplace_back(td.getLexeme(), td.getType(), i); // add token
 				i += static_cast<int>(td.getLen());
 				break;
@@ -85,38 +89,38 @@ void Lexer::lexInput()
 			if (str[++i] != '\'') throw std::runtime_error("Lexing error: char literal not defined correctly.");
 			i++;
 		}
-		else if (str[i] == '\"')
+		else if (str[i] == '\"') // Parse string literals
 		{
 			i++;
-			while (str[i] != '\"')
+			while (str[i] != '\"') // Until we meet the closing double quote
 			{
-				if (str[i] == '\\')
+				if (str[i] == '\\') // Account for ASCII escape sequences
 				{
 #define IS_OCTAL(N)((N) >= '0' && (N) <= '7')
 #define IS_HEX(N)(((N) >= '0' && (N) <= '9') || ((N) >= 'A' && (N) <= 'F') || ((N) >= 'a' && (N) <= 'f'))
 					i++;
-					if (IS_OCTAL(str[i]))
+					if (IS_OCTAL(str[i])) // Parse the \ooo escape sequence, where ooo is an octal number
 					{
-						int charNum = 0;
+						char charNum = 0;
 						while (IS_OCTAL(str[i]))
 						{
 							charNum = 8 * charNum + str[i++] - '0';
 						}
-						tmpLexeme.push_back(static_cast<char>(charNum));
+						tmpLexeme.push_back(charNum);
 					}
-					else if (std::tolower(str[i]) == 'x')
+					else if (std::tolower(str[i]) == 'x')// Parse the \xhhh escape sequence, where hhh is a hex number
 					{
 						i++;
-						int charNum = 0;
+						char charNum = 0;
 						while (IS_HEX(str[i]))
 						{
 							charNum = 16 * charNum + str[i++] - '0';
 						}
-						tmpLexeme.push_back(static_cast<char>(charNum));
+						tmpLexeme.push_back(charNum);
 					}
 					else
 					{
-						switch (str[i])
+						switch (str[i]) // Account for all the other escape sequences
 						{
 						case 'n':
 							tmpLexeme.push_back('\n');
@@ -159,10 +163,10 @@ void Lexer::lexInput()
 					}
 				}
 				else
-					tmpLexeme.push_back(str[i++]);
+					tmpLexeme.push_back(str[i++]); // If not an escape sequence, just push the character
 			}
 			i++;
-			tokenList.emplace_back(tmpLexeme, TokenType::STRING_LIT, i - tmpLexeme.size()); // Add identifier token
+			tokenList.emplace_back(tmpLexeme, TokenType::STRING_LIT, i - tmpLexeme.size()); // Add string literal token
 		}
 
 		else if (isspace(str[i]))
