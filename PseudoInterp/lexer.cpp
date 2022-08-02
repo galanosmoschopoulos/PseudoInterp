@@ -33,14 +33,6 @@ void Lexer::lexInput()
 			break;
 		}
 		std::string tmpLexeme;
-		if (str[i] == '.')
-		{
-			tmpLexeme.push_back(str[i++]);
-			while (isdigit(str[i]) && i < str.size()) // Store all continuous digits
-				tmpLexeme.push_back(str[i++]);
-			tokenList.emplace_back(tmpLexeme, TokenType::FLOAT_LIT, i - tmpLexeme.size()); // Add a num literal token
-		}
-
 		bool foundFixedToken = false;
 		for (TokenDescriptor& td : fixedTokenList) // Check every fixed token (i.e. keywords)
 		{

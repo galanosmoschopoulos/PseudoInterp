@@ -149,12 +149,6 @@ private:
 			},
 			&Parser::parseUnaryPostfix
 		},
-		{
-			{
-				{TT::DOT, OT::MEMBER_ACCESS}
-			},
-			&Parser::parseBinLeft
-		},
 
 		{
 			{
@@ -163,6 +157,13 @@ private:
 			},
 			&Parser::parsePostfixArgList
 		},
+		{
+			{
+				{TT::DOT, OT::MEMBER_ACCESS}
+			},
+			&Parser::parseBinLeft
+		},
+
 
 		{{}, &Parser::parsePrimary}
 	};

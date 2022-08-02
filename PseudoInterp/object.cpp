@@ -1,6 +1,6 @@
 #include "object.h"
 #include "errors.h"
-
+#include <iostream>
 template <class... Ts>
 struct overload : Ts...
 {
@@ -101,30 +101,74 @@ std::string StringContainer::getStr() const
 }
 
 
+StackContainer::StackContainer() = default;
+StackContainer::StackContainer(StackContainer& sc2)
+{
+	copyStacks(stack, sc2.stack);
+	addMethods();
+}
+
+StackContainer& StackContainer::operator=(StackContainer& sc2)
+{
+	copyStacks(stack, sc2.stack);
+	
+	return *this;
+}
+
 StackContainer::StackContainer(const std::vector<Object*>& argVec)
 {
 	if (!argVec.empty()) throw ArgumentError("Stack constructor does not take any arguments!");
-	stackPtr = new std::stack<std::unique_ptr<Object>>;
+	addMethods();
 }
 
-Object* StackContainer::push(const std::vector<Object*>& argVec) const
+Object* StackContainer::push(const std::vector<Object*>& argVec)
 {
 	if (argVec.size() != 1) throw ArgumentError("Exactly 1 argument expected.");
-	stackPtr->emplace(std::make_unique<Object>(*argVec[0]));
+	stack.emplace(std::make_unique<Object>(*argVec[0]));
 	return nullptr;
 }
 
-Object* StackContainer::pop(const std::vector<Object*>& argVec) const
+Object* StackContainer::pop(const std::vector<Object*>& argVec)
 {
 	if (!argVec.empty()) throw ArgumentError("No arguments expected.");
-	if (stackPtr->empty()) throw CustomError("Called pop() on empty stack.");
-	const auto poppedObj = new Object(*stackPtr->top());
-	stackPtr->pop();
+	if (stack.empty()) throw CustomError("Called pop() on empty stack.");
+	const auto poppedObj = new Object(*stack.top());
+	stack.pop();
 	return poppedObj;
 }
+Object* StackContainer::isEmpty(const std::vector<Object*>& argVec) const
+{
 
-Function::Function(CodeBlock* block, std::vector<ASTNode*> params, const int level) : block(block), paramVec(
-	std::move(params)), definedFuncLevel(level)
+	if (!argVec.empty()) throw ArgumentError("No arguments expected.");
+	return new Object(stack.empty());
+}
+void StackContainer::copyStacks(StackType& stack1, StackType& stack2) const
+{
+	StackType tmpStack;
+	while (!stack2.empty()) {
+		stack1.emplace(std::make_unique<Object>(*stack2.top()));
+		tmpStack.emplace(std::make_unique<Object>(*stack2.top()));
+		stack2.pop();
+	}
+	while (!tmpStack.empty()) {
+		stack2.emplace(std::make_unique<Object>(*tmpStack.top()));
+		tmpStack.pop();
+	}
+}
+
+Scope& StackContainer::getMethodScope()
+{
+	return methodScope;
+}
+
+void StackContainer::addMethods()
+{
+	methodScope.addObj(Object([this](const std::vector<Object*>& args) {return push(args); }), "push", true);
+	methodScope.addObj(Object([this](const std::vector<Object*>& args) {return pop(args); }), "pop", true);
+	methodScope.addObj(Object([this](const std::vector<Object*>& args) {return isEmpty(args); }), "isEmpty", true);
+}
+
+Function::Function(CodeBlock* block, std::vector<ASTNode*> params, const int level) : block(block), definedFuncLevel(level), paramVec(std::move(params))
 {
 };
 
@@ -157,9 +201,9 @@ Object* Function::eval(Scope* scope, const std::vector<Object*>& argVec) const
 
 Object::Object() = default;
 
-ArrayContainer& Object::getArrayContainer()
+Object::Object(const Object& obj2)
 {
-	return std::get<ArrayContainer>(data);
+	*this = obj2;
 }
 
 bool Object::isLval() const
@@ -206,7 +250,18 @@ bool Object::isPersistentType() const
 	return persistentType;
 }
 
+bool Object::isConst() const
+{
+	return constness;
+}
+
+void Object::setConst(bool isIt)
+{
+	constness = isIt;
+}
+
 void Object::setPersistentType(const bool isIt)
 {
 	persistentType = isIt;
 }
+

@@ -1,8 +1,6 @@
 #pragma once
 #include <string>
 #include <map>
-#include <stack>
-#include "object.h"
 
 class Object;
 
@@ -36,16 +34,17 @@ public:
 	void decrFuncLevel();
 	void setScopeLevel(int);
 	void setFuncLevel(int);
-	void addObj(const Object& obj, const std::string& id);
-	void addObj(Object*, const std::string& id);
+	void addObj(const Object& obj, const std::string& id, bool isConst = false);
+	void addObj(Object*, const std::string& id, bool isConst = false);
 	Object* getObj(const std::string& id);
 	[[nodiscard]] bool checkObj(const std::string& id);
 	Scope* getRestricted(int);
-
+	void enableExternalFunctions();
 	void printScope() const;
 private:
 	ObjMap scopeMap{};
 	int scopeLevel = 0;
 	int funcLevel = 0;
-	bool derivativeScope = false;
 };
+
+#include "object.h"

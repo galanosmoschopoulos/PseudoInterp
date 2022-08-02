@@ -2,6 +2,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <map>
 #include <chrono>
 #include "AST.h"
 #include "parser.h"
@@ -9,7 +10,7 @@
 #include "inputcleaner.h"
 #include "errors.h"
 #include "color.h"
-
+#include <stack>
 #define VER "1.0"
 
 
@@ -19,8 +20,9 @@ void interpret(const std::string& inputStr)
 	try
 	{
 		Parser parser;
-		const CodeBlock* mainBlock = parser.getAST(cleaner.clean());
+		auto mainBlock = parser.getAST(cleaner.clean());
 		Scope globalScope;
+		globalScope.enableExternalFunctions();
 		const auto start = std::chrono::high_resolution_clock::now();
 		mainBlock->eval(&globalScope, false);
 		const auto stop = std::chrono::high_resolution_clock::now();
@@ -95,5 +97,6 @@ int main(int argc, char** argv)
 	{
 		std::cerr << re.what() << '\n';
 	}
+	
 	return 0;
 }

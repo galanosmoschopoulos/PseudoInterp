@@ -6,6 +6,7 @@
 #include <variant>
 #include <stack>
 #include "AST.h"
+#include "scope.h"
 
 class Object;
 class Function;
@@ -15,25 +16,11 @@ class StackContainer;
 class StringContainer;
 class VariantValueType;
 using ExternalFunction = std::function<Object*(const std::vector<Object*>&)>;
-using VariantType = std::variant<int, StringContainer, bool, float, char, ArrayContainer, StackContainer, Function,
+using VariantType = std::variant<int, StringContainer, bool, float, char, ArrayContainer, std::shared_ptr<StackContainer>, Function,
                                  ExternalFunction>;
 
 class ASTNode;
 class CodeBlock;
-
-enum class ObjectType
-{
-	UNDEFINED,
-	INT,
-	FLOAT,
-	CHAR,
-	STR,
-	ARR,
-	STACK,
-	FUNC,
-	BOOL,
-	EXTERNAL_FUNCTION
-};
 
 class ArrayContainer
 {
@@ -59,11 +46,20 @@ private:
 class StackContainer
 {
 public:
+	using StackType = std::stack<std::unique_ptr<Object>>;
+	StackContainer();
+	StackContainer(StackContainer& sc2);
+	StackContainer& operator=(StackContainer& sc2);
 	explicit StackContainer(const std::vector<Object*>&);
-	[[nodiscard]] Object* push(const std::vector<Object*>&) const;
-	[[nodiscard]] Object* pop(const std::vector<Object*>&) const;
+	void addMethods();
+	[[nodiscard]] Object* push(const std::vector<Object*>&);
+	[[nodiscard]] Object* pop(const std::vector<Object*>&);
+	[[nodiscard]] Object* isEmpty(const std::vector<Object*>& argVec) const;
+	void copyStacks(StackType& stack1, StackType& stack2) const;
+	Scope& getMethodScope();
 private:
-	std::stack<std::unique_ptr<Object>>* stackPtr = nullptr;
+	StackType stack;
+	Scope methodScope;
 };
 
 class Function
@@ -82,6 +78,7 @@ class Object
 {
 public:
 	Object();
+	Object(const Object& obj2);
 	explicit Object(const auto& val) { data = val; }
 	[[nodiscard]] bool isLval() const;
 	void setLval(bool isIt);
@@ -117,11 +114,12 @@ public:
 	Object* operator[](const std::vector<Object*>&);
 	bool isTrue();
 	std::string toStr();
-	bool isPersistentType() const;
+	[[nodiscard]] bool isPersistentType() const;
+	[[nodiscard]] bool isConst() const;
+	void setConst(bool isIt);
 	void setPersistentType(bool);
 private:
-	//ObjectType currentType = ObjectType::UNDEFINED;
 	bool lval = false;
 	bool persistentType = false;
-	ArrayContainer& getArrayContainer();
+	bool constness = false;
 };

@@ -22,8 +22,8 @@ function arrToStr(arr, N)
 	for i from 0 to N-1
 		str += arr[i] + " "
 	return str
-// Comment
-function selectionSort(arr, N) // This is a comment
+
+function selectionSort(arr, N) 
 	for i from 0 to N-2
 		min_idx = i
 		for j from i+1 to N-1
@@ -35,5 +35,17 @@ function selectionSort(arr, N) // This is a comment
 	return arr
 	
 output("Initial: " + arrToStr(initialArr, N))
-output("Sorted (bubble sort): " + arrToStr(bubbleSort(initialArr, N), N))
+output("Sorted (bubble sort): " + arrToStr(sorted = bubbleSort(initialArr, N), N))
 output("Sorted (selection sort): " + arrToStr(selectionSort(initialArr, N), N))
+
+s = Stack()
+output(s.isEmpty())
+for i from 0 to N-1
+	s.push(sorted[i])
+output(s.isEmpty())
+s_str = ""
+for i from 0 to N-1
+	s_str += s.pop() + " "
+output("Reversed: " + s_str)
+
+output(s.isEmpty())

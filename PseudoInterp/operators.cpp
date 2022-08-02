@@ -123,9 +123,23 @@ Object& Object::operator=(const Object& obj2)
 {
 	if (this == &obj2)
 		return *this;
+	if (isConst())
+		throw TypeError("Cannot modify const object.");
 	if (this->data.index() != obj2.data.index() && this->isPersistentType())
 		throw TypeError("The type of the left hand side object cannot be changed.");
-	this->data = obj2.data;
+	std::visit(overload{
+		[this](bool& i) {data = i; },
+		[this](char& i) {data = i; },
+		[this](float& i) {data = i; },
+		[this](int& i) {data = i; },
+		[this](StringContainer& i) {data = i; },
+		[this](ArrayContainer& i) {data = i; },
+		[this](Function& i) {data = i; },
+		[this](ExternalFunction& i) {data = i; },
+		[this](std::shared_ptr<StackContainer>& sc) { data = std::make_shared<StackContainer>(*sc); },
+		[](auto&) { }
+		}, const_cast<Object&>(obj2).data);
+
 	return *this;
 }
 

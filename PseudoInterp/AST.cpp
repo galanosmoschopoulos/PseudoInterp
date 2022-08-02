@@ -1,5 +1,10 @@
 #include "AST.h"
 #include "errors.h"
+template <class... Ts>
+struct overload : Ts...
+{
+	using Ts::operator()...;
+};
 
 Object& checkLval(const Object& obj)
 {
@@ -320,83 +325,91 @@ Object* BinaryNode::eval(Scope* scope, const bool lSide)
 	Object* oLeft = left->eval(scope, (opType == OperatorType::ASSIGNMENT) ? (true) : (false));
 	if (! oLeft) { throw FatalError("", pos); }
 	// If we have the assignment operator, the left node should be passed with lSide=true. This allows it to be initialized if needed.
-	Object* oRight = right->eval(scope, lSide);
-	if (!oRight) { throw FatalError("", pos); }
-	try
-	{
-		switch (opType)
+	try{
+		if(opType == OperatorType::MEMBER_ACCESS)
 		{
-		case OperatorType::ADDITION:
-			result = new Object(*oLeft + *oRight);
-			break;
-		case OperatorType::SUBTRACTION:
-			result = new Object(*oLeft - *oRight);
-			break;
-		case OperatorType::MULTIPLICATION:
-			result = new Object(*oLeft * *oRight);
-			break;
-		case OperatorType::DIVISION:
-			result = new Object(*oLeft / *oRight);
-			break;
-		case OperatorType::MODULO:
-			result = new Object(*oLeft % *oRight);
-			break;
-		case OperatorType::LESS:
-			result = new Object(*oLeft < *oRight);
-			break;
-		case OperatorType::LESS_EQ:
-			result = new Object(*oLeft <= *oRight);
-			break;
-		case OperatorType::GREATER:
-			result = new Object(*oLeft > *oRight);
-			break;
-		case OperatorType::GRE_EQ:
-			result = new Object(*oLeft >= *oRight);
-			break;
-		case OperatorType::EQUAL:
-			result = new Object(*oLeft == *oRight);
-			break;
-		case OperatorType::NOT_EQUAL:
-			result = new Object(*oLeft != *oRight);
-			break;
-		case OperatorType::OR:
-			result = new Object(*oLeft || *oRight);
-			break;
-		case OperatorType::AND:
-			result = new Object(*oLeft && *oRight);
-			break;
-		case OperatorType::ASSIGNMENT:
-			result = &checkLval(*oLeft = *oRight);
-			break;
-		case OperatorType::ADDITION_ASSIGN:
-			result = &checkLval(*oLeft += *oRight);
-			break;
-		case OperatorType::SUBTRACTION_ASSIGN:
-			result = &checkLval(*oLeft -= *oRight);
-			break;
-		case OperatorType::MULTIPLICATION_ASSIGN:
-			result = &checkLval(*oLeft *= *oRight);
-			break;
-		case OperatorType::DIVISION_ASSIGN:
-			result = &checkLval(*oLeft /= *oRight);
-			break;
-		case OperatorType::MODULO_ASSIGN:
-			result = &checkLval(*oLeft %= *oRight);
-			break;
-		case OperatorType::COMMA:
-			result = (oRight->isLval()) ? (oRight) : (new Object(*oRight));
-			break;
-		default:
-			throw FatalError("", pos);
+			std::visit(overload{
+				[&result, this](std::shared_ptr<StackContainer>& sc) {result =  right->eval(&(*sc).getMethodScope()); },
+				[](auto&){}
+				}, oLeft->data);
+		}
+		else {
+			Object* oRight = right->eval(scope, lSide);
+			if (!oRight) { throw FatalError("", pos); }
+			switch (opType)
+			{
+			case OperatorType::ADDITION:
+				result = new Object(*oLeft + *oRight);
+				break;
+			case OperatorType::SUBTRACTION:
+				result = new Object(*oLeft - *oRight);
+				break;
+			case OperatorType::MULTIPLICATION:
+				result = new Object(*oLeft * *oRight);
+				break;
+			case OperatorType::DIVISION:
+				result = new Object(*oLeft / *oRight);
+				break;
+			case OperatorType::MODULO:
+				result = new Object(*oLeft % *oRight);
+				break;
+			case OperatorType::LESS:
+				result = new Object(*oLeft < *oRight);
+				break;
+			case OperatorType::LESS_EQ:
+				result = new Object(*oLeft <= *oRight);
+				break;
+			case OperatorType::GREATER:
+				result = new Object(*oLeft > *oRight);
+				break;
+			case OperatorType::GRE_EQ:
+				result = new Object(*oLeft >= *oRight);
+				break;
+			case OperatorType::EQUAL:
+				result = new Object(*oLeft == *oRight);
+				break;
+			case OperatorType::NOT_EQUAL:
+				result = new Object(*oLeft != *oRight);
+				break;
+			case OperatorType::OR:
+				result = new Object(*oLeft || *oRight);
+				break;
+			case OperatorType::AND:
+				result = new Object(*oLeft && *oRight);
+				break;
+			case OperatorType::ASSIGNMENT:
+				result = &checkLval(*oLeft = *oRight);
+				break;
+			case OperatorType::ADDITION_ASSIGN:
+				result = &checkLval(*oLeft += *oRight);
+				break;
+			case OperatorType::SUBTRACTION_ASSIGN:
+				result = &checkLval(*oLeft -= *oRight);
+				break;
+			case OperatorType::MULTIPLICATION_ASSIGN:
+				result = &checkLval(*oLeft *= *oRight);
+				break;
+			case OperatorType::DIVISION_ASSIGN:
+				result = &checkLval(*oLeft /= *oRight);
+				break;
+			case OperatorType::MODULO_ASSIGN:
+				result = &checkLval(*oLeft %= *oRight);
+				break;
+			case OperatorType::COMMA:
+				result = (oRight->isLval()) ? (oRight) : (new Object(*oRight));
+				break;
+			default:
+				throw FatalError("", pos);
+			}
+			cleanTmps({ oLeft, oRight }); // Clean the temporary objects
 		}
 	}
 	catch (CustomError& ce)
 	{
-		if(!ce.isPosSet()) ce.setPos(pos);
-		throw;
+			if (!ce.isPosSet()) ce.setPos(pos);
+			throw;
 	}
 
-	cleanTmps({oLeft, oRight}); // Clean the temporary objects
 	return result;
 }
 
