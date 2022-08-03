@@ -1,4 +1,4 @@
-#include "parser.h"
+﻿#include "parser.h"
 #include "errors.h"
 #include "object.h"
 
@@ -19,18 +19,22 @@ CodeBlock* Parser::getAST(const std::string& inputStr)
 }
 
 // Note: (this->*(currGroup + 1)->parserFunc)(currGroup + 1) calls the appropriate parser function for operators of the next (higher) precedence level.
-// Note: in grammaer definitions, T refers to an expression of higher precedence than E
-
-
+// Note: in grammar definitions, T refers to an expression of higher precedence than E
+// The notation {A} means repetition of A (or nothing) (i.e. "", "A", "AA")
+// The notaion A|B|C means either one or the other. Hence {A|B|C} may be "AA", "ABBC", "C", "", "CCCAAA", etc.
+// ε is the empty string ""
+// [op] denotes an operator (i.e. +)
 // A block is a sequence of statements, that have an equal number of leading tabs (identation).
 // To parse a block, the current token must be at the beginning of the line (not at the beginning of the statement).
 CodeBlock* Parser::parseBlock()
 {
 	blockLevel++; // New block => level up
+	// Used to know how many tabs to expect in the current block
 	const auto currBlock = new CodeBlock();
 	while (lexer.getCurrToken().getType() != TokenType::EOFILE)
 	{
-		if (int nTabs; lessTabs(nTabs)) break; // If less than expected, we're out of the block
+		// A block is defined by statements having equal indentation.
+		if (int nTabs; lessTabs(nTabs)) break; // If less tabs than expected, we're out of the block
 
 		while (lexer.getCurrToken().getType() == TokenType::TAB) lexer.scanToken(); // Skip all the tabs
 
@@ -63,7 +67,7 @@ CodeBlock* Parser::parseBlock()
 	return currBlock;
 }
 
-bool Parser::lessTabs(int& i)
+bool Parser::lessTabs(int& i) // Checks for identation errors, or if we have exited a block
 {
 	for (i = 0; lexer.lookForw(i).getType() == TokenType::TAB; i++);
 	if (i < blockLevel)
@@ -79,7 +83,7 @@ bool Parser::lessTabs(int& i)
 	return false;
 }
 
-void Parser::checkNewLine()
+void Parser::checkNewLine() // Runs when a newline is expected
 {
 	if (lexer.getCurrToken().getType() != TokenType::NEWLINE) // If it doesn't end in newline, something's wrong
 		throw ParsingError("Newline expected.", lexer.getCurrToken().getPos());
@@ -87,13 +91,21 @@ void Parser::checkNewLine()
 }
 
 
-Statement* Parser::parseReturn()
+Statement* Parser::parseReturn() // Simply parses expression after keyword "return"
 {
-	const size_t pos = lexer.getCurrToken().getPos();
+	const size_t pos = lexer.getCurrToken().getPos(); // pos always holds the position of the statement/operator/expression and is stored for error reporting
 	lexer.scanToken();
 	Statement* returnStatement = new ReturnStatement((this->*precedenceTab[0].parserFunc)(precedenceTab), pos);
 	checkNewLine();
 	return returnStatement;
+}
+
+Statement* Parser::parseExpr() // Simply parses an expression and returns the result 
+{
+	const size_t pos = lexer.getCurrToken().getPos();
+	Statement* exprStatement = new ExprStatement((this->*precedenceTab[0].parserFunc)(precedenceTab), pos);
+	checkNewLine();
+	return exprStatement;
 }
 
 Statement* Parser::parseIf()
@@ -139,13 +151,6 @@ Statement* Parser::parseIf()
 	return statement;
 }
 
-Statement* Parser::parseExpr()
-{
-	const size_t pos = lexer.getCurrToken().getPos();
-	Statement* exprStatement = new ExprStatement((this->*precedenceTab[0].parserFunc)(precedenceTab), pos);
-	checkNewLine();
-	return exprStatement;
-}
 
 Statement* Parser::parseWhile()
 {
@@ -218,7 +223,7 @@ ASTNode* Parser::parseBinLeft(precedenceGroup* currGroup)
 		{
 			const size_t pos = lexer.getCurrToken().getPos();
 			lexer.scanToken();
-			ASTNode* nodeB = (this->*(currGroup + 1)->parserFunc)(currGroup + 1); // Get left operand
+			ASTNode* nodeB = (this->*(currGroup + 1)->parserFunc)(currGroup + 1); // Get right operand
 			ASTNode* tmpNode = new BinaryNode(nodeA, nodeB, currGroup->findOp[currToken], pos);
 			// Use temporary node to fix left recursion problem
 			nodeA = tmpNode;
@@ -244,32 +249,44 @@ ASTNode* Parser::parseBinRight(precedenceGroup* currGroup)
 	return nodeA;
 }
 
-ASTNode* Parser::parsePostfixArgList(precedenceGroup* currGroup)
+// Note: the function call, square brackets and dot operator are parsed differently, but have equal precedence and are both left associative. Hence, they must be parsed by the same function.
+// Grammar: E -> T{. | (V) | [V]}
+//			V -> ε | E{,E}
+ASTNode* Parser::parseParenthAndDot(precedenceGroup* currGroup)
 {
 	ASTNode* node = (this->*(currGroup + 1)->parserFunc)(currGroup + 1);
 	while (true)
 	{
-		const TokenType currToken = lexer.getCurrToken().getType();
-		const TokenType closingToken = lexer.getCurrToken().getOppositeType();
-		if (currGroup->findOp.contains(currToken))
+		if (currGroup->findOp.contains(lexer.getCurrToken().getType()))
 		{
+			const TokenType currToken = lexer.getCurrToken().getType();
+			const TokenType closingToken = lexer.getCurrToken().getOppositeType(); // ) if (, ] if [
 			const size_t pos = lexer.getCurrToken().getPos();
 			std::vector<ASTNode*> nOperands;
-			if (lexer.lookForw(1).getType() != closingToken)
+			if (lexer.lookForw(1).getType() != closingToken) // For the case where the argument list is empty "()"
 			{
 				do
 				{
 					lexer.scanToken();
-					nOperands.push_back(
+					nOperands.push_back( // Parse an expression, but parse above the comma precedence (comma has another meaning here - it separates expressions and it isn't an operator)
 						(this->*precedenceTab[COMMA_PRECEDENCE + 1].parserFunc)(precedenceTab + COMMA_PRECEDENCE + 1));
 				}
-				while (lexer.getCurrToken().getType() == TokenType::COMMA);
-				if (lexer.getCurrToken().getType() != closingToken) throw ParsingError(
-					") or ] expected.", lexer.getCurrToken().getPos());
+				while (lexer.getCurrToken().getType() == TokenType::COMMA); // If there's another comma, there are more
+				if (lexer.getCurrToken().getType() != closingToken)
+					throw ParsingError(
+						(closingToken==TokenType::R_PAREN)?(")") : ("]") + std::string(" expected."), lexer.getCurrToken().getPos());
 				lexer.scanToken();
 			}
-			else lexer.scanToken(2);
+			else lexer.scanToken(2); // If we have "()", just skip both parentheses
 			node = new nAryNode(node, currGroup->findOp[currToken], nOperands, pos);
+		}
+		else if (lexer.getCurrToken().getType() == TokenType::DOT)
+		{ // This is just like parsebinleft
+			const size_t pos = lexer.getCurrToken().getPos();
+			lexer.scanToken();
+			ASTNode* nodeB = (this->*(currGroup + 1)->parserFunc)(currGroup + 1);
+			ASTNode* tmpNode = new BinaryNode(node, nodeB, OperatorType::MEMBER_ACCESS, pos);
+			node = tmpNode;
 		}
 		else
 			return node;
@@ -278,7 +295,7 @@ ASTNode* Parser::parsePostfixArgList(precedenceGroup* currGroup)
 
 Statement* Parser::parseFunctionDef()
 {
-	// Follows the grammar: function ID(ID, ID, ..., ID)\nBLOCK
+	// Follows the grammar: function [ID]( ε | [ID]{, [ID]} ) ( i.e. foo(), or func(a, b) )
 	const size_t pos = lexer.getCurrToken().getPos();
 	lexer.scanToken();
 	if (lexer.getCurrToken().getType() != TokenType::ID)
@@ -360,7 +377,7 @@ ASTNode* Parser::parsePrimary(precedenceGroup*)
 		break;
 
 	case TokenType::STRING_LIT:
-		node = new LiteralNode(StringContainer(lexer.getCurrToken().getLexeme()), pos);
+		node = new LiteralNode(std::make_shared<StringContainer>(lexer.getCurrToken().getLexeme()), pos);
 		lexer.scanToken();
 		break;
 	case TokenType::L_PAREN:
@@ -368,7 +385,7 @@ ASTNode* Parser::parsePrimary(precedenceGroup*)
 		node = (this->*precedenceTab[0].parserFunc)(precedenceTab); // Go back to lowest precedence
 		if (node)
 		{
-			node->setForceRval(true); // (myVar) = 5 should not be a valid syntax
+			node->setForceRval(true); // (myVar) = 5 should not be valid, even if myVar = 5 is
 		}
 		if (lexer.getCurrToken().getType() == TokenType::R_PAREN)
 		{

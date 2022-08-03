@@ -66,6 +66,7 @@ private:
 	Lexer lexer;
 
 	// Each precedence group consists of a map linking tokens to their corresponding operators, and a pointer to a function to parse those operators
+	// I know this is a hot mess, but I didn't know any better.
 	struct precedenceGroup
 	{
 		std::map<TokenType, OperatorType> findOp{};
@@ -155,15 +156,8 @@ private:
 				{TT::L_SQ_BRACKET, OT::SUBSCRIPT},
 				{TT::L_PAREN, OT::FUNCTION_CALL}
 			},
-			&Parser::parsePostfixArgList
+			&Parser::parseParenthAndDot
 		},
-		{
-			{
-				{TT::DOT, OT::MEMBER_ACCESS}
-			},
-			&Parser::parseBinLeft
-		},
-
 
 		{{}, &Parser::parsePrimary}
 	};
@@ -180,7 +174,7 @@ private:
 	ASTNode* parseBinRight(precedenceGroup*);
 	ASTNode* parseUnaryPostfix(precedenceGroup*);
 	ASTNode* parsePrimary(precedenceGroup*);
-	ASTNode* parsePostfixArgList(precedenceGroup*);
+	ASTNode* parseParenthAndDot(precedenceGroup*);
 	int blockLevel = -1;
 	// Each block increases this by one. So if the main block (which contains everything) is level 0, then blockLevel is initially -1.
 	bool lessTabs(int&);

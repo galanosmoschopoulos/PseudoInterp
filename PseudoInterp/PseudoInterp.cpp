@@ -2,7 +2,6 @@
 #include <string>
 #include <sstream>
 #include <fstream>
-#include <map>
 #include <chrono>
 #include "AST.h"
 #include "parser.h"
@@ -10,7 +9,7 @@
 #include "inputcleaner.h"
 #include "errors.h"
 #include "color.h"
-#include <stack>
+
 #define VER "1.0"
 
 
@@ -20,9 +19,9 @@ void interpret(const std::string& inputStr)
 	try
 	{
 		Parser parser;
-		auto mainBlock = parser.getAST(cleaner.clean());
+		auto mainBlock = parser.getAST(cleaner.clean()); // Get the AST of the whole code
 		Scope globalScope;
-		globalScope.enableExternalFunctions();
+		globalScope.enableExternalFunctions(); // To have functions such as output(), input(), etc.
 		const auto start = std::chrono::high_resolution_clock::now();
 		mainBlock->eval(&globalScope, false);
 		const auto stop = std::chrono::high_resolution_clock::now();
@@ -33,7 +32,8 @@ void interpret(const std::string& inputStr)
 	}
 	catch (CustomError& ce)
 	{
-		std::cerr << '\n' << dye::red_on_black(ce.what() + "\n" + cleaner.getErrorLine(ce.getPos()));
+		std::cerr << '\n' << dye::red_on_black(ce.what() + "\n" + cleaner.getErrorLine(ce.getPos())); // Print both the custom error message, and the line in the source code where the error occurs.
+		// Cleaner is responsible for accepting a position as a integer, and finding the exact line and character corresponding to that position.
 	}
 }
 
@@ -51,6 +51,7 @@ int main(int argc, char** argv)
 	{
 		while (--argc > 0 && (*++argv)[0] == '-')
 		{
+			// Scan all characters after the '-'
 			for (char c = *++argv[0]; c; c = *++argv[0])
 			{
 				switch (std::tolower(c))
@@ -79,8 +80,9 @@ int main(int argc, char** argv)
 			}
 		}
 		if (argc != 0) throw std::runtime_error("Illegal command line arguments.");
-		if (flags.help) std::cout <<
-			"IB pseudocode interpreter made by Galanos Moschopoulos for the Computer Science IA.\nUsage\t-? : Prints this message\n\t-I : Sets input code file\n\t-V : Prints version number\n";
+		if (flags.help)
+			std::cout <<
+				"IB pseudocode interpreter made by Galanos Moschopoulos for the Computer Science IA.\nUsage\t-? : Prints this message\n\t-I : Sets input code file\n\t-V : Prints version number\n";
 		if (flags.ver) std::cout << "Version " << VER << '\n';
 
 		if (flags.inputFileSet)
@@ -97,6 +99,7 @@ int main(int argc, char** argv)
 	{
 		std::cerr << re.what() << '\n';
 	}
-	
 	return 0;
 }
+
+

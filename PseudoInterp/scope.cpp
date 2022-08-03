@@ -40,16 +40,20 @@ void Scope::decrLevel()
 		throw FatalError("");
 	}
 	std::vector<ObjKey> toBeDeleted;
+	// Iterated in reverse since highest scopelevel is at the beginning.
+	// Keys of objects with current (highest) scopelevel are stored
 	for (auto& itr : std::ranges::reverse_view(scopeMap))
 	{
 		if (itr.first.scopeLevel == scopeLevel)
 		{
+			delete itr.second; // Delete the object
 			toBeDeleted.push_back(itr.first);
 		}
 	}
+	// Objects are deleted
 	for (const auto& x : toBeDeleted)
 	{
-		scopeMap.erase(x);
+		scopeMap.erase(x); // Remove keys of deleted objects
 	}
 	scopeLevel--;
 }
@@ -71,6 +75,7 @@ void Scope::addObj(Object* obj, const std::string& id, bool isConst)
 
 Object* Scope::getObj(const std::string& id)
 {
+	// Iterate in reverse, so that Objects with higher scopelevel are chosen first
 	for (auto& itr : std::ranges::reverse_view(scopeMap))
 	{
 		if (itr.first.ID == id)
@@ -88,6 +93,7 @@ bool Scope::checkObj(const std::string& id)
 
 Scope* Scope::getRestricted(const int maxFuncLevel)
 {
+	// Creates a new scope, containing all variables of the existing scope that have a func level less or equal to maxFuncLevel
 	const auto newScope = new Scope;
 	ObjMap& newMap = newScope->getMap();
 	for (auto& itr : scopeMap)
@@ -102,55 +108,63 @@ Scope* Scope::getRestricted(const int maxFuncLevel)
 	return newScope;
 }
 
-void Scope::enableExternalFunctions()
+void Scope::enableExternalFunctions() // Adds external functions to the scope. These are pre-existing objects that can be called to construct data structures, or to use output(), input(), etc
 {
-	addObj(Object([](const std::vector<Object*>& argVec) { return new Object(ArrayContainer(argVec)); }), "Array", true);
-	addObj(Object([](const std::vector<Object*>& argVec) { return new Object(std::make_shared<StackContainer>(argVec)); }), "Stack", true);
+	addObj(Object([](const std::vector<Object*>& argVec) { return new Object(std::make_shared<ArrayContainer>(argVec)); }), "Array",
+	       true);
 	addObj(Object([](const std::vector<Object*>& argVec)
-		{
-			for (Object* obj : argVec)
-			{
-				std::cout << obj->toStr() << ' ';
-			}
-			std::cout << '\n';
-			return nullptr;
-		}), "output", true);
-	addObj(Object([](const std::vector<Object*>& argVec)
-		{
-			if (argVec.size() > 1) throw ArgumentError("At most one argument expected.");
-			std::string inputStr;
-			std::getline(std::cin, inputStr);
-			Object* inputObj = nullptr;
-			bool isNum = true;
-			int inputNum = 0;
-			size_t pos = 0;
-			try
-			{
-				inputNum = std::stoi(inputStr, &pos);
-			}
-			catch (std::invalid_argument&)
-			{
-				isNum = false;
-			}
-			catch (std::out_of_range&)
-			{
-				isNum = false;
-			}
-			if (pos != inputStr.length()) isNum = false;
-
-			if (isNum) inputObj = new Object(inputNum);
-			else inputObj = new Object(StringContainer(inputStr));
-			if (argVec.size() == 1)
-				checkLval(*argVec[0] = *inputObj);
-			return inputObj;
-		}), "input", true);
-}
-
-void Scope::printScope() const
-{
-	for (std::pair<ObjKey, Object*> x : scopeMap)
 	{
-		std::cout << "[ID: " << x.first.ID << ", Func Level: " << x.first.funcLevel << ", Scope Level: " << x.first.
-			scopeLevel << "]\n";
-	}
+		return new Object(std::make_shared<StackContainer>(argVec));
+	}), "Stack", true);
+	addObj(Object([](const std::vector<Object*>& argVec)
+	{
+		return new Object(std::make_shared<QueueContainer>(argVec));
+	}), "Queue", true);
+	addObj(Object([](const std::vector<Object*>& argVec)
+	{
+		return new Object(std::make_shared<CollectionContainer>(argVec));
+	}), "Collection", true);
+	addObj(Object([](const std::vector<Object*>& argVec)
+	{
+		return new Object(std::make_shared<StringContainer>(argVec));
+	}), "String", true);
+	addObj(Object([](const std::vector<Object*>& argVec)
+	{
+		for (Object* obj : argVec)
+		{
+			std::cout << obj->toStr() << ' ';
+		}
+		std::cout << '\n';
+		return nullptr;
+	}), "output", true);
+	addObj(Object([](const std::vector<Object*>& argVec)
+	{
+		if (argVec.size() > 1) throw ArgumentError("At most one argument expected.");
+		std::string inputStr;
+		std::getline(std::cin, inputStr);
+		Object* inputObj = nullptr;
+		bool isNum = true;
+		int inputNum = 0;
+		size_t pos = 0;
+		try // If user's input can be interpreted as a number, store it as a number
+		{
+			inputNum = std::stoi(inputStr, &pos);
+		}
+		catch (std::invalid_argument&)
+		{
+			isNum = false;
+		}
+		catch (std::out_of_range&)
+		{
+			isNum = false;
+		}
+		if (pos != inputStr.length()) isNum = false;
+
+		if (isNum) inputObj = new Object(inputNum);
+		else inputObj = new Object(std::make_shared<StringContainer>(inputStr));
+		if (argVec.size() == 1) // If you pass an argument to input(), then the input value is put in that argument
+			checkLval(*argVec[0] = *inputObj);
+		return inputObj;
+	}), "input", true);
 }
+

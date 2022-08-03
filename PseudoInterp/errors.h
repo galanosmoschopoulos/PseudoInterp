@@ -7,7 +7,7 @@ class CustomError : public std::exception
 protected:
 	std::string message;
 	size_t position = 0;
-	bool posSet = false; 
+	bool posSet = false;
 public:
 	CustomError();
 	CustomError(std::string msg, size_t pos);

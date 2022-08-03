@@ -8,7 +8,7 @@ struct overload : Ts...
 };
 
 
-static VariantType cast_to_str(VariantType& var)
+static VariantType cast_to_str(VariantType& var) // Converts anything to a string
 {
 	StringContainer result;
 	std::visit(overload{
@@ -16,13 +16,13 @@ static VariantType cast_to_str(VariantType& var)
 		           [&result](char& val) { result = StringContainer(std::string(1, val)); },
 		           [&result](int& val) { result = StringContainer(std::to_string(val)); },
 		           [&result](float& val) { result = StringContainer(std::to_string(val)); },
-		           [&result](StringContainer i) { result = StringContainer(i); },
+		           [&result](std::shared_ptr<StringContainer> i) { result = StringContainer(*i); },
 		           [](auto&) { throw TypeError("Cannot cast to string."); }
 	           }, var);
-	return VariantType(result);
+	return VariantType(std::make_shared<StringContainer>(result));
 }
 
-static VariantType cast_to_char(VariantType& var)
+static VariantType cast_to_char(VariantType& var) // We can't go lower than char
 {
 	char result = 0;
 	std::visit(overload{
@@ -33,7 +33,7 @@ static VariantType cast_to_char(VariantType& var)
 	return VariantType(result);
 }
 
-static VariantType cast_to_int(VariantType& v)
+static VariantType cast_to_int(VariantType& v)// If it holds an int, return it. If not, assume it is char, cast to char and then convert to float.
 {
 	int result = 0;
 	std::visit(overload{
@@ -43,7 +43,7 @@ static VariantType cast_to_int(VariantType& v)
 	return VariantType(result);
 }
 
-static VariantType cast_to_float(VariantType& var)
+static VariantType cast_to_float(VariantType& var) // If it holds a float, return it. If not, assume it is int, cast to int and then convert to float.
 {
 	float result = 0.0f;
 	std::visit(overload{
@@ -53,19 +53,19 @@ static VariantType cast_to_float(VariantType& var)
 	return VariantType(result);
 }
 
-static void cast_numerical(VariantType& varL, VariantType& varR)
+static void cast_numerical(VariantType& varL, VariantType& varR) // Tries to achieve the same type between varL and varR without loss of info.
 {
-	if (std::holds_alternative<float>(varL) || std::holds_alternative<float>(varR))
+	if (std::holds_alternative<float>(varL) || std::holds_alternative<float>(varR)) // If either one or the other holds float
 	{
 		varL = cast_to_float(varL);
 		varR = cast_to_float(varR);
 	}
-	else if (std::holds_alternative<int>(varL) || std::holds_alternative<int>(varR))
+	else if (std::holds_alternative<int>(varL) || std::holds_alternative<int>(varR)) // If either one or the other holds int
 	{
 		varL = cast_to_int(varL);
 		varR = cast_to_int(varR);
 	}
-	else if (std::holds_alternative<char>(varL) || std::holds_alternative<char>(varR))
+	else if (std::holds_alternative<char>(varL) || std::holds_alternative<char>(varR))  // If either one or the other holds char
 	{
 		varL = cast_to_char(varL);
 		varR = cast_to_char(varR);
@@ -75,14 +75,14 @@ static void cast_numerical(VariantType& varL, VariantType& varR)
 }
 
 template <typename T>
-static VariantType numericalOperator(VariantType varL, VariantType varR, T opFunc)
+static VariantType numericalOperator(VariantType varL, VariantType varR, T opFunc) // Accepts two operands and a lambda with two parameters
 {
 	cast_numerical(varL, varR);
 	VariantType result;
 	std::visit(overload{
-		           [&result, &opFunc](char& left, char& right) { result = opFunc(left, right); },
-		           [&result, &opFunc](int& left, int& right) { result = opFunc(left, right); },
-		           [&result, &opFunc](float& left, float& right) { result = opFunc(left, right); },
+		           [&result, &opFunc](char& left, char& right) { result = static_cast<char>(opFunc(left, right)); },
+		           [&result, &opFunc](int& left, int& right) { result = static_cast<int>(opFunc(left, right)); },
+		           [&result, &opFunc](float& left, float& right) { result = static_cast<float>(opFunc(left, right)); },
 		           [](auto&, auto&)
 		           {
 		           }
@@ -91,7 +91,7 @@ static VariantType numericalOperator(VariantType varL, VariantType varR, T opFun
 }
 
 template <typename T>
-static void numericalUnaryOperator(VariantType& var, T opFunc)
+static void numericalUnaryOperator(VariantType& var, T opFunc)// Accepts one operands and a lambda with one parameter
 {
 	VariantType result;
 	std::visit(overload{
@@ -110,8 +110,8 @@ static VariantType numericalOperatorNonFloat(VariantType varL, VariantType varR,
 	cast_numerical(varL, varR);
 	VariantType result;
 	std::visit(overload{
-		           [&result, &opFunc](char& left, char& right) { result = opFunc(left, right); },
-		           [&result, &opFunc](int& left, int& right) { result = opFunc(left, right); },
+		           [&result, &opFunc](char& left, char& right) { result = static_cast<char>(opFunc(left, right)); },
+		           [&result, &opFunc](int& left, int& right) { result = static_cast<int>(opFunc(left, right)); },
 		           [](auto&, auto&)
 		           {
 		           }
@@ -119,42 +119,70 @@ static VariantType numericalOperatorNonFloat(VariantType varL, VariantType varR,
 	return result;
 }
 
+template <typename T>
+static T forceCast(VariantType& var)
+{
+	T result;
+	std::visit(overload{
+		[&result](char& x) {result = static_cast<T>(x); },
+		[&result](int& x) {result = static_cast<T>(x); },
+		[&result](float& x) {result = static_cast<T>(x); },
+		[](auto&) {}
+	}, var);
+	return result;
+}
+
 Object& Object::operator=(const Object& obj2)
 {
+	auto& obj2_nonconst = const_cast<Object&>(obj2);
 	if (this == &obj2)
 		return *this;
 	if (isConst())
 		throw TypeError("Cannot modify const object.");
-	if (this->data.index() != obj2.data.index() && this->isPersistentType())
-		throw TypeError("The type of the left hand side object cannot be changed.");
+	if (data.index() != obj2_nonconst.data.index() && isPersistentType()) {
+		std::visit(overload{
+			[this, &obj2_nonconst](char& x) {x = forceCast<char>(obj2_nonconst.data); },
+			[this, &obj2_nonconst](int& x) {x = forceCast<int>(obj2_nonconst.data); },
+			[this, &obj2_nonconst](float& x) {x = forceCast<float>(obj2_nonconst.data); },
+			[](auto& x) {throw TypeError("The type of the left hand side object cannot be changed."); }
+			}, data);
+		return *this;
+	}
 	std::visit(overload{
-		[this](bool& i) {data = i; },
-		[this](char& i) {data = i; },
-		[this](float& i) {data = i; },
-		[this](int& i) {data = i; },
-		[this](StringContainer& i) {data = i; },
-		[this](ArrayContainer& i) {data = i; },
-		[this](Function& i) {data = i; },
-		[this](ExternalFunction& i) {data = i; },
-		[this](std::shared_ptr<StackContainer>& sc) { data = std::make_shared<StackContainer>(*sc); },
-		[](auto&) { }
-		}, const_cast<Object&>(obj2).data);
+		           [this](bool& i) { data = i; },
+		           [this](char& i) { data = i; },
+		           [this](float& i) { data = i; },
+		           [this](int& i) { data = i; },
+		           [this](Function& i) { data = i; },
+		           [this](ExternalFunction& i) { data = i; },
+				   // Containers are in fact pointers to containers. Instead of copying the pointer, we should instantiate another object that is a copy of the one pointed by the pointer
+		           [this](std::shared_ptr<StackContainer>& sc) { data = std::make_shared<StackContainer>(*sc); },
+		           [this](std::shared_ptr<ArrayContainer>& ac) { data = std::make_shared<ArrayContainer>(*ac); },
+		           [this](std::shared_ptr<QueueContainer>& qc) { data = std::make_shared<QueueContainer>(*qc); },
+		           [this](std::shared_ptr<CollectionContainer>& cc) { data = std::make_shared<CollectionContainer>(*cc); },
+		           [this](std::shared_ptr<StringContainer>& sc) { data = std::make_shared<StringContainer>(*sc); },
+		           [](auto&)
+		           {
+		           }
+	           }, obj2_nonconst.data);
 
 	return *this;
 }
 
 Object& Object::operator+=(Object& rhs)
 {
-	VariantType varL = this->data, varR = rhs.data;
-	if (std::holds_alternative<StringContainer>(varL) || std::holds_alternative<StringContainer>(varR))
+	//
+	if (std::holds_alternative<std::shared_ptr<StringContainer>>(data) || std::holds_alternative<std::shared_ptr<StringContainer>>(rhs.data))
 	{
-		varL = cast_to_str(varL);
-		varR = cast_to_str(varR);
-		this->data = StringContainer(std::get<StringContainer>(varL).getStr() + std::get<StringContainer>(varR).getStr());
+		VariantType varL, varR;
+		varL = cast_to_str(data);
+		varR = cast_to_str(rhs.data);
+		*this = Object(std::make_shared<StringContainer>(
+			std::get<std::shared_ptr<StringContainer>>(varL)->getStr() + std::get<std::shared_ptr<StringContainer>>(varR)->getStr()));
 	}
 	else
 	{
-		this->data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x + y; });
+		*this = Object(numericalOperator(data, rhs.data, [](auto& x, auto& y) { return x + y; }));
 	}
 	return *this;
 }
@@ -168,8 +196,7 @@ Object operator+(Object lhs, Object& rhs)
 
 Object& Object::operator-=(Object& rhs)
 {
-	VariantType varL = this->data, varR = rhs.data;
-	this->data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x - y; });
+	*this = Object(numericalOperator(data, rhs.data, [](auto& x, auto& y) { return x - y; }));
 	return *this;
 }
 
@@ -182,8 +209,7 @@ Object operator-(Object lhs, Object& rhs)
 
 Object& Object::operator*=(Object& rhs)
 {
-	VariantType varL = this->data, varR = rhs.data;
-	this->data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x * y; });
+	*this = Object(numericalOperator(data, rhs.data, [](auto& x, auto& y) { return x * y; }));
 	return *this;
 }
 
@@ -196,8 +222,7 @@ Object operator*(Object lhs, Object& rhs)
 
 Object& Object::operator/=(Object& rhs)
 {
-	VariantType varL = this->data, varR = rhs.data;
-	this->data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x / y; });
+	*this = Object(numericalOperator(data, rhs.data, [](auto& x, auto& y) { return x / y; }));
 	return *this;
 }
 
@@ -210,8 +235,7 @@ Object operator/(Object lhs, Object& rhs)
 
 Object& Object::operator%=(Object& rhs)
 {
-	VariantType varL = this->data, varR = rhs.data;
-	this->data = numericalOperatorNonFloat(varL, varR, [](auto& x, auto& y) { return x % y; });
+	*this = Object(numericalOperatorNonFloat(data, rhs.data, [](auto& x, auto& y) { return x % y; }));
 	return *this;
 }
 
@@ -271,8 +295,8 @@ Object operator<(Object& lhs, Object& rhs)
 {
 	VariantType varL = lhs.data, varR = rhs.data;
 	Object result;
-	if (std::holds_alternative<StringContainer>(varL) && std::holds_alternative<StringContainer>(varR))
-		result.data = std::get<StringContainer>(varL).getStr() < std::get<StringContainer>(varR).getStr();
+	if (std::holds_alternative<std::shared_ptr<StringContainer>>(varL) && std::holds_alternative<std::shared_ptr<StringContainer>>(varR)) // Strings can be compared too
+		result.data = std::get<std::shared_ptr<StringContainer>>(varL)->getStr() < std::get<std::shared_ptr<StringContainer>>(varR)->getStr();
 	else
 		result.data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x < y; });
 	return result;
@@ -297,8 +321,8 @@ Object operator==(Object& lhs, Object& rhs)
 {
 	VariantType varL = lhs.data, varR = rhs.data;
 	Object result;
-	if (std::holds_alternative<StringContainer>(varL) && std::holds_alternative<StringContainer>(varR))
-		result.data = std::get<StringContainer>(varL).getStr() == std::get<StringContainer>(varR).getStr();
+	if (std::holds_alternative<std::shared_ptr<StringContainer>>(varL) && std::holds_alternative<std::shared_ptr<StringContainer>>(varR))
+		result.data = std::get<std::shared_ptr<StringContainer>>(varL)->getStr() == std::get<std::shared_ptr<StringContainer>>(varR)->getStr();
 	else
 		result.data = numericalOperator(varL, varR, [](auto& x, auto& y) { return x == y; });
 	return result;
@@ -327,7 +351,7 @@ Object operator&&(Object& lhs, Object& rhs)
 Object* Object::operator()(Scope* scope, const std::vector<Object*>& argVec)
 {
 	Object* result = nullptr;
-	std::visit(overload{
+	std::visit(overload{ // Function call operator
 		           [&result, &scope, &argVec](Function& func) { result = func.eval(scope, argVec); },
 		           [&result, &argVec](ExternalFunction& external_function) { result = external_function(argVec); },
 		           [](auto&) { throw TypeError("Not a callable object."); }
@@ -339,8 +363,14 @@ Object* Object::operator[](const std::vector<Object*>& indexVec)
 {
 	Object* result = nullptr;
 	std::visit(overload{
-		           [&result, &indexVec](ArrayContainer& array_container){ result = array_container.getArray(indexVec); },
-		           [&result, &indexVec](StringContainer& string_container){ result = string_container.getChar(indexVec); },
+		           [&result, &indexVec](std::shared_ptr<ArrayContainer>& array_container)
+		           {
+			           result = array_container->getArray(indexVec);
+		           },
+		           [&result, &indexVec](std::shared_ptr<StringContainer>& string_container)
+		           {
+			           result = string_container->getChar(indexVec);
+		           },
 		           [](auto&) { throw TypeError("Object does not accept a subscript."); }
 	           }, this->data);
 	return result;

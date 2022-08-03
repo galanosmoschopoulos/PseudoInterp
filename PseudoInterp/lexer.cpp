@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include "errors.h"
 #include <string>
 #include <cctype>
 #include <sstream>
@@ -42,7 +43,7 @@ void Lexer::lexInput()
 			if (td.getLen() == p) // If all match
 			{
 				foundFixedToken = true;
-				if(td.getType() == TokenType::COMMENT)
+				if (td.getType() == TokenType::COMMENT)
 				{
 					for (; str[i] != '\n' && i < str.size(); i++);
 					break;
@@ -77,8 +78,8 @@ void Lexer::lexInput()
 		else if (str[i] == '\'')
 		{
 			i++;
-			tokenList.emplace_back(std::string(1, str[i]), TokenType::CHAR_LIT, i - tmpLexeme.size());
-			if (str[++i] != '\'') throw std::runtime_error("Lexing error: char literal not defined correctly.");
+			tokenList.emplace_back(lexChar(i), TokenType::CHAR_LIT, i - tmpLexeme.size());
+			if (str[i] != '\'') throw LexingError("Lexing error: char literal not defined correctly.", i);
 			i++;
 		}
 		else if (str[i] == '\"') // Parse string literals
@@ -86,76 +87,7 @@ void Lexer::lexInput()
 			i++;
 			while (str[i] != '\"') // Until we meet the closing double quote
 			{
-				if (str[i] == '\\') // Account for ASCII escape sequences
-				{
-#define IS_OCTAL(N)((N) >= '0' && (N) <= '7')
-#define IS_HEX(N)(((N) >= '0' && (N) <= '9') || ((N) >= 'A' && (N) <= 'F') || ((N) >= 'a' && (N) <= 'f'))
-					i++;
-					if (IS_OCTAL(str[i])) // Parse the \ooo escape sequence, where ooo is an octal number
-					{
-						char charNum = 0;
-						while (IS_OCTAL(str[i]))
-						{
-							charNum = 8 * charNum + str[i++] - '0';
-						}
-						tmpLexeme.push_back(charNum);
-					}
-					else if (std::tolower(str[i]) == 'x')// Parse the \xhhh escape sequence, where hhh is a hex number
-					{
-						i++;
-						char charNum = 0;
-						while (IS_HEX(str[i]))
-						{
-							charNum = 16 * charNum + str[i++] - '0';
-						}
-						tmpLexeme.push_back(charNum);
-					}
-					else
-					{
-						switch (str[i]) // Account for all the other escape sequences
-						{
-						case 'n':
-							tmpLexeme.push_back('\n');
-							break;
-						case 't':
-							tmpLexeme.push_back('\t');
-							break;
-						case 'a':
-							tmpLexeme.push_back('\a');
-							break;
-						case 'b':
-							tmpLexeme.push_back('\b');
-							break;
-						case 'f':
-							tmpLexeme.push_back('\f');
-							break;
-						case 'r':
-							tmpLexeme.push_back('\r');
-							break;
-						case 'v':
-							tmpLexeme.push_back('\v');
-							break;
-						case '\\':
-							tmpLexeme.push_back('\\');
-							break;
-						case '\?':
-							tmpLexeme.push_back('\?');
-							break;
-						case '\'':
-							tmpLexeme.push_back('\'');
-							break;
-						case '\"':
-							tmpLexeme.push_back('\"');
-							break;
-						default:
-							throw std::runtime_error("Lexing error: unknown ASCII escape sequence.");
-							break;
-						}
-						i++;
-					}
-				}
-				else
-					tmpLexeme.push_back(str[i++]); // If not an escape sequence, just push the character
+				tmpLexeme += lexChar(i);
 			}
 			i++;
 			tokenList.emplace_back(tmpLexeme, TokenType::STRING_LIT, i - tmpLexeme.size()); // Add string literal token
@@ -172,6 +104,82 @@ void Lexer::lexInput()
 			// If it doesn't match the above, there's a problem
 		}
 	}
+}
+
+std::string Lexer::lexChar(size_t& i) const
+{
+	std::string tmpChar;
+	if (str[i] == '\\') // Account for ASCII escape sequences
+	{
+#define IS_OCTAL(N)((N) >= '0' && (N) <= '7')
+#define IS_HEX(N)(((N) >= '0' && (N) <= '9') || ((N) >= 'A' && (N) <= 'F') || ((N) >= 'a' && (N) <= 'f'))
+		i++;
+		if (IS_OCTAL(str[i])) // Parse the \ooo escape sequence, where ooo is an octal number
+		{
+			char charNum = 0;
+			while (IS_OCTAL(str[i]))
+			{
+				charNum = 8 * charNum + str[i++] - '0';
+			}
+			tmpChar.push_back(charNum);
+		}
+		else if (std::tolower(str[i]) == 'x') // Parse the \xhhh escape sequence, where hhh is a hex number
+		{
+			i++;
+			char charNum = 0;
+			while (IS_HEX(str[i]))
+			{
+				charNum = 16 * charNum + str[i++] - '0';
+			}
+			tmpChar.push_back(charNum);
+		}
+		else
+		{
+			switch (str[i]) // Account for all the other escape sequences
+			{
+			case 'n':
+				tmpChar.push_back('\n');
+				break;
+			case 't':
+				tmpChar.push_back('\t');
+				break;
+			case 'a':
+				tmpChar.push_back('\a');
+				break;
+			case 'b':
+				tmpChar.push_back('\b');
+				break;
+			case 'f':
+				tmpChar.push_back('\f');
+				break;
+			case 'r':
+				tmpChar.push_back('\r');
+				break;
+			case 'v':
+				tmpChar.push_back('\v');
+				break;
+			case '\\':
+				tmpChar.push_back('\\');
+				break;
+			case '\?':
+				tmpChar.push_back('\?');
+				break;
+			case '\'':
+				tmpChar.push_back('\'');
+				break;
+			case '\"':
+				tmpChar.push_back('\"');
+				break;
+			default:
+				throw LexingError("Lexing error: unknown ASCII escape sequence.", i);
+				break;
+			}
+			i++;
+		}
+	}
+	else
+		tmpChar.push_back(str[i++]); // If not an escape sequence, just push the character
+	return tmpChar;
 }
 
 TokenDescriptor::TokenDescriptor() = default;

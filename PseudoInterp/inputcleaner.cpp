@@ -22,10 +22,10 @@ std::string InputCleaner::clean()
 	int deletedLines = 0;
 	while (std::getline(ss, subStr, '\n'))
 	{
-		if(subStr.compare(0, 2, "//") == 0) // Removes all-comment lines
+		if (subStr.compare(0, 2, "//") == 0) // Removes all-comment lines
 		{
-				deletedLines++;
-				break;
+			deletedLines++;
+			break;
 		}
 		if (std::ranges::any_of(subStr, isgraph))
 		{
@@ -63,7 +63,8 @@ std::string InputCleaner::getErrorLine(const size_t errPos) const
 		nlines = subStrVec.size() - 1;
 		posInLine = subStrVec.rbegin()->size() - 1;
 	}
-	else if (posInLine >= subStrVec[nlines].size()) posInLine = subStrVec[nlines].size() - 1; // And account for this weird error
+	else if (posInLine >= subStrVec[nlines].size()) posInLine = subStrVec[nlines].size() - 1;
+	// And account for this weird error
 
 	ss << "Line: " << nlines + sumOfDeletedStrs[nlines] + 1 << '\n';
 	std::string s = subStrVec[nlines];

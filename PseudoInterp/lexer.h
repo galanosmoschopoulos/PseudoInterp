@@ -102,6 +102,7 @@ public:
 	void lexInput();
 
 private:
+	std::string lexChar(size_t& i) const;
 	std::vector<Token> tokenList;
 	size_t tokenListIndex = 0;
 	std::string str;
