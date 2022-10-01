@@ -37,7 +37,6 @@ enum class OperatorType
 	FUNCTION_CALL,
 	SUBSCRIPT,
 	MEMBER_ACCESS,
-	OUTPUT,
 	UNKNOWN
 };
 
@@ -73,31 +72,36 @@ private:
 		ASTNode* (Parser::* parserFunc)(precedenceGroup*){};
 	};
 
-	precedenceGroup precedenceTab[MAX_GROUPS] = {
 #ifndef COMMA_PRECEDENCE
 #define COMMA_PRECEDENCE 0
 #endif
-		{{{TT::COMMA, OT::COMMA}}, &Parser::parseBinLeft},
 
-		{{{TT::OUTPUT, OT::OUTPUT}}, &Parser::parseUnary},
+	// TT is tokentype, OT is operator type
+	precedenceGroup precedenceTab[MAX_GROUPS] = {
+		// Precedence = 0
+		{{{TT::COMMA, OT::COMMA}}, &Parser::parseBinLeft}, 
 
-		{
+		// Precedence = 1
+		{ 
 			{
-				{TT::EQ, OT::ASSIGNMENT},
+				{TT::EQ, OT::ASSIGNMENT}, // 'equals' token ("=") is linked to assignment operator.
 				{TT::PLUS_EQ, OT::ADDITION_ASSIGN},
 				{TT::MINUS_EQ, OT::SUBTRACTION_ASSIGN},
 				{TT::STAR_EQ, OT::MULTIPLICATION_ASSIGN},
 				{TT::FORW_SLASH_EQ, OT::DIVISION_ASSIGN},
 				{TT::PERCENT_EQ, OT::MODULO_ASSIGN}
 			},
-			&Parser::parseBinRight
+			&Parser::parseBinRight // Parser function used for that group is parseBinRight
 		},
 
-		{{{TT::DOUBLE_VERT_SLASH, OT::OR}}, &Parser::parseBinLeft},
+		// Precedence = 2
+		{{{TT::DOUBLE_VERT_SLASH, OT::OR}}, &Parser::parseBinLeft}, 
 
-		{{{TT::DOUBLE_AMP, OT::AND}}, &Parser::parseBinLeft},
+		// Precedence = 3
+		{{{TT::DOUBLE_AMP, OT::AND}}, &Parser::parseBinLeft}, 
 
-		{
+		// Precedence = 4
+		{ 
 			{
 				{TT::DOUBLE_EQ, OT::EQUAL},
 				{TT::NOT_EQ, OT::NOT_EQUAL}
@@ -105,7 +109,8 @@ private:
 			&Parser::parseBinLeft
 		},
 
-		{
+		// Precedence = 5
+		{ 
 			{
 				{TT::LESS, OT::LESS},
 				{TT::LESS_EQ, OT::LESS_EQ},
@@ -115,7 +120,8 @@ private:
 			&Parser::parseBinLeft
 		},
 
-		{
+		// Precedence = 6
+		{ 
 			{
 				{TT::PLUS, OT::ADDITION},
 				{TT::MINUS, OT::SUBTRACTION}

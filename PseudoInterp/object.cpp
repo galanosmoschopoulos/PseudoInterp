@@ -454,7 +454,12 @@ std::string Object::toStr()
 		           [&result](bool& val) { result = (val) ? ("true") : ("false"); },
 		           [&result](char& val) { result = std::string(1, val); },
 		           [&result](int& val) { result = std::to_string(val); },
-		           [&result](float& val) { result = std::to_string(val); },
+		           [&result](float& val)
+		           {
+					   auto tmpS = std::to_string(val);
+					   tmpS.erase(tmpS.find_last_not_of("0") + 1);
+					   result = tmpS;
+		           },
 		           [&result](std::shared_ptr<StringContainer> sc) { result = sc->getStr(); },
 		           [](auto&) { throw TypeError("Object does not have a string representation"); }
 	           }, data);

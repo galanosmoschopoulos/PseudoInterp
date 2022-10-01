@@ -48,8 +48,9 @@ Object* CodeBlock::eval(Scope* scope, const bool isInFunction) const
 	for (Statement* st : statementVec)
 	{
 		// Execute all statements
-		if ((tmpObj = st->eval(scope, isInFunction)) != nullptr) // If we get something that isn't ptr, a return statement has been run
+		if ((tmpObj = st->eval(scope, isInFunction)) != nullptr) 
 		{
+			// If we get something that isn't nullptr, a return statement has been run
 			break;
 		}
 	}
@@ -296,7 +297,9 @@ Object* nAryNode::eval(Scope* scope, bool)
 	}
 	catch (CustomError& ce)
 	{
-		if (!ce.isPosSet()) ce.setPos(pos); // If pos is set already, it means that this error was produced within a function. So if we change it it will point to the function call operator and not the actual location.
+		/* If pos is set already, it means that this error was produced within a function.
+		 * So if we change it it will point to the function call operator and not the actual location.*/
+		if (!ce.isPosSet()) ce.setPos(pos);
 		throw;
 	}
 	cleanTmps({mainObject});
@@ -322,10 +325,12 @@ BinaryNode::BinaryNode(ASTNode* l, ASTNode* r, OperatorType opType, size_t posit
 
 Object* BinaryNode::eval(Scope* scope, const bool lSide)
 {
+	// Allow new variable initialization
+	Object* oLeft = left->eval(scope, (opType == OperatorType::ASSIGNMENT) ? (true) : (false)); 
+	/* If we have the assignment operator, the left node should be passed with lSide = true.
+	 *This allows it to be initialized if needed. */
 	Object* result = nullptr;
-	Object* oLeft = left->eval(scope, (opType == OperatorType::ASSIGNMENT) ? (true) : (false));
 	if (! oLeft) { throw FatalError("", pos); }
-	// If we have the assignment operator, the left node should be passed with lSide=true. This allows it to be initialized if needed.
 	try
 	{
 		if (opType == OperatorType::MEMBER_ACCESS)
@@ -333,19 +338,19 @@ Object* BinaryNode::eval(Scope* scope, const bool lSide)
 			/*Member access refers to accessing methods in certain objects. An node containing the pointer name (right) searches in the
 			 * method scope of the object. It retrieves an external function which executes the method.*/
 			std::visit(overload{
-				           [&result, this](std::shared_ptr<StackContainer>& sc){ result = right->eval(&(*sc).getMethodScope()); },
-				           [&result, this](std::shared_ptr<QueueContainer>& qc){ result = right->eval(&(*qc).getMethodScope()); },
-				           [&result, this](std::shared_ptr<ArrayContainer>& ac){ result = right->eval(&(*ac).getMethodScope()); },
-				           [&result, this](std::shared_ptr<CollectionContainer>& cc){ result = right->eval(&(*cc).getMethodScope()); },
-				           [&result, this](std::shared_ptr<StringContainer>& sc){ result = right->eval(&(*sc).getMethodScope()); },
+				           [&result, this](std::shared_ptr<StackContainer>& sc){ result = right->eval(&sc->getMethodScope()); },
+				           [&result, this](std::shared_ptr<QueueContainer>& qc){ result = right->eval(&qc->getMethodScope()); },
+				           [&result, this](std::shared_ptr<ArrayContainer>& ac){ result = right->eval(&ac->getMethodScope()); },
+				           [&result, this](std::shared_ptr<CollectionContainer>& cc){ result = right->eval(&cc->getMethodScope()); },
+				           [&result, this](std::shared_ptr<StringContainer>& sc){ result = right->eval(&sc->getMethodScope()); },
 						   [](auto&) {throw TypeError("Object does not contain methods."); }
 			           }, oLeft->data);
 		}
 		else
 		{
-			Object* oRight = right->eval(scope, lSide);
+			Object* oRight = right->eval(scope, lSide); // Get the rhs object
 			if (!oRight) { throw FatalError("", pos); }
-			switch (opType)
+			switch (opType) // Apply different operators
 			{
 			case OperatorType::ADDITION:
 				result = new Object(*oLeft + *oRight);
@@ -500,7 +505,8 @@ Object* IDNode::eval(Scope* scope, const bool lSide)
 {
 	Object* obj = nullptr;
 	if (!scope->checkObj(id) && lSide)
-		// If object with set id doesn't exist, and is exactly in the left side (lSide) of an equality operator, create a new object with such id
+		/* If object with set id doesn't exist, and is exactly in the left side (lSide) of an
+		 * equality operator, create a new object with such id*/
 		scope->addObj(Object(), id);
 	obj = scope->getObj(id);
 	if (!obj)

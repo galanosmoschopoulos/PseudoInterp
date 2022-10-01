@@ -20,19 +20,22 @@ std::string InputCleaner::clean()
 	std::string subStr, finalStr;
 	const std::string whitespaces(" \t\f\v\n\r");
 	int deletedLines = 0;
+	// Iterate over each line
 	while (std::getline(ss, subStr, '\n'))
 	{
 		if (subStr.compare(0, 2, "//") == 0) // Removes all-comment lines
 		{
 			deletedLines++;
-			break;
+			continue;
 		}
+		// If the string contains graphing characters (i.e. not just spaces)
 		if (std::ranges::any_of(subStr, isgraph))
 		{
-			// If the string contains graphic characters (i.e. not just spaces)
+			// Clean trailing whitespaces
 			subStr.erase(subStr.find_last_not_of(whitespaces) + 1);
-			finalStr += subStr + "\n"; // Add to new string
+			finalStr += subStr + "\n"; // Add '\n' to new string
 			subStrVec.push_back(subStr + '\n');
+			// sumOfDeletedLines[i] is the number of lines deleted until line i
 			sumOfDeletedStrs.push_back(deletedLines);
 		}
 		else deletedLines++;

@@ -19,8 +19,10 @@ class StackContainer;
 class StringContainer;
 class VariantValueType;
 using ExternalFunction = std::function<Object*(const std::vector<Object*>&)>;
-using VariantType = std::variant<int, std::shared_ptr<StringContainer>, bool, float, char, std::shared_ptr<ArrayContainer>,
-					std::shared_ptr<StackContainer>, std::shared_ptr<QueueContainer>, std::shared_ptr<CollectionContainer>, Function, ExternalFunction>;
+using VariantType = std::variant<int, std::shared_ptr<StringContainer>, bool, float, char,
+								 std::shared_ptr<ArrayContainer>,std::shared_ptr<StackContainer>,
+								 std::shared_ptr<QueueContainer>, std::shared_ptr<CollectionContainer>,
+								 Function, ExternalFunction>;
 
 class ASTNode;
 class CodeBlock;

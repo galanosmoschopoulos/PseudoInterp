@@ -1,51 +1,5 @@
-output("Enter size of array")
-N = input()
-initialArr = Array(N)
-for i from 0 to N-1
-	output("element [" + i + "]")
-	input(initialArr[i])
+function output(i)
+	for j from 0 to i
+		output(j)
 
-function bubbleSort(arr, N)
-	alldone = false
-	while !alldone
-		alldone = true
-		for i from 0 to N-2
-			if arr[i] > arr[i+1]
-				alldone = false
-				tmp = arr[i]
-				arr[i] = arr[i+1]
-				arr[i+1] = tmp
-	return arr
-
-function arrToStr(arr, N)
-	str = ""
-	for i from 0 to N-1
-		str += arr[i] + " "
-	return str
-
-function selectionSort(arr, N) 
-	for i from 0 to N-2
-		min_idx = i
-		for j from i+1 to N-1
-			if arr[j] < arr[min_idx]
-				min_idx = j
-		tmp = arr[i]
-		arr[i] = arr[min_idx]
-		arr[min_idx] = tmp
-	return arr
-	
-output("Initial: " + arrToStr(initialArr, N))
-output("Sorted (bubble sort): " + arrToStr(sorted = bubbleSort(initialArr, N), N))
-output("Sorted (selection sort): " + arrToStr(selectionSort(initialArr, N), N))
-
-s = Stack()
-output(s.isEmpty())
-for i from 0 to N-1
-	s.push(sorted[i])
-output(s.isEmpty())
-s_str = ""
-for i from 0 to N-1
-	s_str += s.pop() + " "
-output("Reversed: " + s_str)
-
-output(s.isEmpty())
+foo(11)

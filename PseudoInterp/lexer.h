@@ -48,7 +48,6 @@ enum class TokenType
 	WHSPACE,
 	TAB,
 	NEWLINE,
-	OUTPUT,
 	WHILE,
 	IF,
 	ELIF,
@@ -70,13 +69,16 @@ class TokenDescriptor
 public:
 	TokenDescriptor();
 	TokenDescriptor(std::string, TokenType);
+	TokenDescriptor(std::string, TokenType, bool wordToken);
 	std::string getLexeme();
 	[[nodiscard]] size_t getLen() const;
 	[[nodiscard]] TokenType getType() const;
 	[[nodiscard]] TokenType getOppositeType() const;
+	bool isWordToken();
 protected:
 	std::string lexeme;
 	TokenType type = TokenType::UNKNOWN;
+	bool wordToken = false;
 };
 
 class Token : public TokenDescriptor
@@ -108,6 +110,10 @@ private:
 	std::string str;
 	std::vector<TokenDescriptor> fixedTokenList = {
 		// A list of keywords, relating lexeme to token type
+		TokenDescriptor("while", TokenType::WHILE, true),
+		TokenDescriptor("if", TokenType::IF, true),
+		TokenDescriptor("elif", TokenType::ELIF, true),
+		TokenDescriptor("else", TokenType::ELSE, true),
 		TokenDescriptor("//", TokenType::COMMENT),
 		TokenDescriptor("+=", TokenType::PLUS_EQ),
 		TokenDescriptor("-=", TokenType::MINUS_EQ),
@@ -141,16 +147,12 @@ private:
 		TokenDescriptor(".", TokenType::DOT),
 		TokenDescriptor("\t", TokenType::TAB),
 		TokenDescriptor("\n", TokenType::NEWLINE),
-		TokenDescriptor("while", TokenType::WHILE),
-		TokenDescriptor("if", TokenType::IF),
-		TokenDescriptor("elif", TokenType::ELIF),
-		TokenDescriptor("else", TokenType::ELSE),
-		TokenDescriptor("for", TokenType::FOR),
-		TokenDescriptor("from", TokenType::FROM),
-		TokenDescriptor("to", TokenType::TO),
-		TokenDescriptor("true", TokenType::TRUE_LIT),
-		TokenDescriptor("false", TokenType::FALSE_LIT),
-		TokenDescriptor("return", TokenType::RETURN_TOK),
-		TokenDescriptor("function", TokenType::FUNCTION_DEF)
+		TokenDescriptor("for", TokenType::FOR, true),
+		TokenDescriptor("from", TokenType::FROM, true),
+		TokenDescriptor("to", TokenType::TO, true),
+		TokenDescriptor("true", TokenType::TRUE_LIT, true),
+		TokenDescriptor("false", TokenType::FALSE_LIT, true),
+		TokenDescriptor("return", TokenType::RETURN_TOK, true),
+		TokenDescriptor("function", TokenType::FUNCTION_DEF, true)
 	};
 };

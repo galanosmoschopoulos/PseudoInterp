@@ -28,7 +28,7 @@ void Lexer::lexInput()
 
 	for (size_t i = 0; ;)
 	{
-		if (i == str.size()) // If it has finished, write EOFILE to list
+		if (i == str.size()) // If it has finished, write End Of File token to list
 		{
 			tokenList.emplace_back("", TokenType::EOFILE, i);
 			break;
@@ -38,18 +38,22 @@ void Lexer::lexInput()
 		for (TokenDescriptor& td : fixedTokenList) // Check every fixed token (i.e. keywords)
 		{
 			size_t p = 0;
-			for (; p < td.getLen() && (td.getLexeme()[p] == str[i + p]) && (i + p < str.size()); p++);
 			// Count the matching characters
+			for (; p < td.getLen() && (td.getLexeme()[p] == str[i + p]) && (i + p < str.size()); p++);
 			if (td.getLen() == p) // If all match
 			{
+				// A keyword (i.e. 'while') token must end in ' ' or newline, to separate it from the next token.
+				// If not, then it is a variable identifier. I.e. 'for i' and 'fori' are different.
+				if (td.isWordToken() && str[i + p] != ' ' && str[i + p] != '\n') break;
+
 				foundFixedToken = true;
-				if (td.getType() == TokenType::COMMENT)
+				if (td.getType() == TokenType::COMMENT) // If comment, skip until the end of line
 				{
 					for (; str[i] != '\n' && i < str.size(); i++);
 					break;
 				}
-				tokenList.emplace_back(td.getLexeme(), td.getType(), i); // add token
-				i += static_cast<int>(td.getLen());
+				tokenList.emplace_back(td.getLexeme(), td.getType(), i); //Add the new token
+				i += static_cast<int>(td.getLen()); // Increase the input string index
 				break;
 			}
 		}
@@ -59,7 +63,7 @@ void Lexer::lexInput()
 			auto tType = TokenType::INT_LIT;
 			while (isdigit(str[i]) && i < str.size()) // Store all continuous digits
 				tmpLexeme.push_back(str[i++]);
-			if (str[i] == '.')
+			if (str[i] == '.') // If we meet a decimal separator, it's a float
 			{
 				tType = TokenType::FLOAT_LIT;
 				tmpLexeme.push_back(str[i++]);
@@ -67,7 +71,7 @@ void Lexer::lexInput()
 			while (isdigit(str[i]) && i < str.size()) // Store all continuous digits
 				tmpLexeme.push_back(str[i++]);
 
-			tokenList.emplace_back(tmpLexeme, tType, i - tmpLexeme.size()); // Add a num literal token
+			tokenList.emplace_back(tmpLexeme, tType, i - tmpLexeme.size()); // Add token a numerical literal token
 		}
 		else if (isalpha(str[i]) || str[i] == '_') // If it starts with letter or _
 		{
@@ -75,9 +79,10 @@ void Lexer::lexInput()
 				tmpLexeme.push_back(str[i++]);
 			tokenList.emplace_back(tmpLexeme, TokenType::ID, i - tmpLexeme.size()); // Add identifier token
 		}
-		else if (str[i] == '\'')
+		else if (str[i] == '\'') // If we meet quotation mark
 		{
 			i++;
+			// Use lexChar() to parse a character or an ASCII escape sequence
 			tokenList.emplace_back(lexChar(i), TokenType::CHAR_LIT, i - tmpLexeme.size());
 			if (str[i] != '\'') throw LexingError("Lexing error: char literal not defined correctly.", i);
 			i++;
@@ -188,6 +193,10 @@ TokenDescriptor::TokenDescriptor(std::string tokStr, const TokenType tokType) : 
 {
 }
 
+TokenDescriptor::TokenDescriptor(std::string tokStr, const TokenType tokType, bool wordToken) : lexeme(std::move(tokStr)), type(tokType), wordToken(wordToken)
+{
+}
+
 std::string TokenDescriptor::getLexeme() { return lexeme; }
 size_t TokenDescriptor::getLen() const { return lexeme.size(); }
 TokenType TokenDescriptor::getType() const { return type; }
@@ -202,6 +211,11 @@ TokenType TokenDescriptor::getOppositeType() const
 	case TokenType::R_SQ_BRACKET: return TokenType::L_SQ_BRACKET;
 	default: return TokenType::NEWLINE;
 	}
+}
+
+bool TokenDescriptor::isWordToken()
+{
+	return wordToken;
 }
 
 Token::Token(const std::string& tokStr, const TokenType tokType, const size_t tokPos) : pos(tokPos)

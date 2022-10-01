@@ -12,10 +12,15 @@ static VariantType cast_to_str(VariantType& var) // Converts anything to a strin
 {
 	StringContainer result;
 	std::visit(overload{
-		           [&result](bool& val) { result = StringContainer((val) ? ("true") : ("false")); },
+		           [&result](bool& val) { result = StringContainer(); },
 		           [&result](char& val) { result = StringContainer(std::string(1, val)); },
 		           [&result](int& val) { result = StringContainer(std::to_string(val)); },
-		           [&result](float& val) { result = StringContainer(std::to_string(val)); },
+		           [&result](float& val)
+		           {
+					   auto tmpS = std::to_string(val);
+					   tmpS.erase(tmpS.find_last_not_of("0") + 1);
+			           result = StringContainer(tmpS);
+		           },
 		           [&result](std::shared_ptr<StringContainer> i) { result = StringContainer(*i); },
 		           [](auto&) { throw TypeError("Cannot cast to string."); }
 	           }, var);
@@ -26,15 +31,15 @@ static VariantType cast_to_char(VariantType& var) // We can't go lower than char
 {
 	char result = 0;
 	std::visit(overload{
-		           //[&result](bool& val) { result = static_cast<unsigned char>(val); },
 		           [&result](char& val) { result = val; },
 		           [](auto&) { throw TypeError("Impossible to implicitly cast type to numerical."); }
 	           }, var);
 	return VariantType(result);
 }
 
-static VariantType cast_to_int(VariantType& v)// If it holds an int, return it. If not, assume it is char, cast to char and then convert to float.
+static VariantType cast_to_int(VariantType& v)
 {
+	// If it holds an int, return it. If not, assume it is char, cast to char and then convert to float.
 	int result = 0;
 	std::visit(overload{
 		           [&result](int& val) { result = val; },
@@ -43,8 +48,9 @@ static VariantType cast_to_int(VariantType& v)// If it holds an int, return it. 
 	return VariantType(result);
 }
 
-static VariantType cast_to_float(VariantType& var) // If it holds a float, return it. If not, assume it is int, cast to int and then convert to float.
+static VariantType cast_to_float(VariantType& var) 
 {
+	// If it holds a float, return it. If not, assume it is int, cast to int and then convert to float.
 	float result = 0.0f;
 	std::visit(overload{
 		           [&result](float& val) { result = val; },
@@ -53,20 +59,24 @@ static VariantType cast_to_float(VariantType& var) // If it holds a float, retur
 	return VariantType(result);
 }
 
-static void cast_numerical(VariantType& varL, VariantType& varR) // Tries to achieve the same type between varL and varR without loss of info.
+// Tries to achieve the same type between varL and varR without loss of date
+static void cast_numerical(VariantType& varL, VariantType& varR) 
 {
-	if (std::holds_alternative<float>(varL) || std::holds_alternative<float>(varR)) // If either one or the other holds float
+	if (std::holds_alternative<float>(varL) || std::holds_alternative<float>(varR)) 
 	{
+		// If either one or the other holds float, make both float
 		varL = cast_to_float(varL);
 		varR = cast_to_float(varR);
 	}
-	else if (std::holds_alternative<int>(varL) || std::holds_alternative<int>(varR)) // If either one or the other holds int
+	else if (std::holds_alternative<int>(varL) || std::holds_alternative<int>(varR)) 
 	{
+		// Else if either one or the other holds int, make both int
 		varL = cast_to_int(varL);
 		varR = cast_to_int(varR);
 	}
-	else if (std::holds_alternative<char>(varL) || std::holds_alternative<char>(varR))  // If either one or the other holds char
+	else if (std::holds_alternative<char>(varL) || std::holds_alternative<char>(varR))  
 	{
+		// If either one or the other holds char, make both char
 		varL = cast_to_char(varL);
 		varR = cast_to_char(varR);
 	}
@@ -171,17 +181,20 @@ Object& Object::operator=(const Object& obj2)
 
 Object& Object::operator+=(Object& rhs)
 {
-	//
+	// If either one holds a string
 	if (std::holds_alternative<std::shared_ptr<StringContainer>>(data) || std::holds_alternative<std::shared_ptr<StringContainer>>(rhs.data))
 	{
 		VariantType varL, varR;
-		varL = cast_to_str(data);
+		varL = cast_to_str(data); // Convert both to string
 		varR = cast_to_str(rhs.data);
+		// Result is a string that is the combination of the two operands
+		// I.e. let a = 5, then a += "hello" yields a == "5hello", since 5 casts to "5"
 		*this = Object(std::make_shared<StringContainer>(
-			std::get<std::shared_ptr<StringContainer>>(varL)->getStr() + std::get<std::shared_ptr<StringContainer>>(varR)->getStr()));
+			std::get<std::shared_ptr<StringContainer>>(varL)->getStr() +
+			std::get<std::shared_ptr<StringContainer>>(varR)->getStr()));
 	}
 	else
-	{
+	{ // Else, operands must be numbers. Pass a lambda function of addition
 		*this = Object(numericalOperator(data, rhs.data, [](auto& x, auto& y) { return x + y; }));
 	}
 	return *this;

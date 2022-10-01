@@ -99,6 +99,13 @@ int main(int argc, char** argv)
 	{
 		std::cerr << re.what() << '\n';
 	}
+	class S
+	{
+	public:
+		int a, b;
+		S() = default;
+		S(std::initializer_list<int> l);
+	};
 	return 0;
 }
 

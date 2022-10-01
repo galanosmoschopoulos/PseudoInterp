@@ -68,9 +68,10 @@ void Scope::addObj(const Object& obj, const std::string& id, bool isConst)
 
 void Scope::addObj(Object* obj, const std::string& id, bool isConst)
 {
+	// Objects are sorted by the first element of the key (highest to lowest scope level)
 	scopeMap[ObjKey(scopeLevel, funcLevel, id)] = obj;
 	obj->setLval(true);
-	obj->setConst(isConst);
+	obj->setConst(isConst); // To prevent user from reassigning built in functions like output()
 }
 
 Object* Scope::getObj(const std::string& id)
@@ -108,6 +109,53 @@ Scope* Scope::getRestricted(const int maxFuncLevel)
 	return newScope;
 }
 
+static bool str_to_int(const std::string& s, int& i)
+{
+	size_t pos;
+	try // If user's input can be interpreted as a number, store it as a number
+	{
+		i = std::stoi(s, &pos);
+	}
+	catch (std::invalid_argument&)
+	{
+		return false;
+	}
+	catch (std::out_of_range&)
+	{
+		return false;
+	}
+	if (pos != s.length()) return false;
+	return true;
+}
+
+#include <type_traits>
+template<typename T>
+static bool str_to_numerical(const std::string& s, T& i)
+{
+	size_t pos;
+	try // If user's input can be interpreted as a number, store it as a number
+	{
+		if constexpr(std::is_same_v<T, int>)
+		{
+			i = std::stoi(s, &pos);
+		}
+		else if constexpr (std::is_same_v<T, float>)
+		{
+			i = std::stof(s, &pos);
+		}
+	}
+	catch (std::invalid_argument&)
+	{
+		return false;
+	}
+	catch (std::out_of_range&)
+	{
+		return false;
+	}
+	if (pos != s.length()) return false;
+	return true;
+}
+
 void Scope::enableExternalFunctions() // Adds external functions to the scope. These are pre-existing objects that can be called to construct data structures, or to use output(), input(), etc
 {
 	addObj(Object([](const std::vector<Object*>& argVec) { return new Object(std::make_shared<ArrayContainer>(argVec)); }), "Array",
@@ -143,25 +191,12 @@ void Scope::enableExternalFunctions() // Adds external functions to the scope. T
 		std::string inputStr;
 		std::getline(std::cin, inputStr);
 		Object* inputObj = nullptr;
-		bool isNum = true;
-		int inputNum = 0;
-		size_t pos = 0;
-		try // If user's input can be interpreted as a number, store it as a number
-		{
-			inputNum = std::stoi(inputStr, &pos);
-		}
-		catch (std::invalid_argument&)
-		{
-			isNum = false;
-		}
-		catch (std::out_of_range&)
-		{
-			isNum = false;
-		}
-		if (pos != inputStr.length()) isNum = false;
-
-		if (isNum) inputObj = new Object(inputNum);
-		else inputObj = new Object(std::make_shared<StringContainer>(inputStr));
+		if (int inputInt = 0;  str_to_numerical(inputStr, inputInt))
+			inputObj = new Object(inputInt);
+		else if (float inputFloat = 0.0f; str_to_numerical(inputStr, inputFloat))
+			inputObj = new Object(inputFloat);
+		else
+			inputObj = new Object(std::make_shared<StringContainer>(inputStr));
 		if (argVec.size() == 1) // If you pass an argument to input(), then the input value is put in that argument
 			checkLval(*argVec[0] = *inputObj);
 		return inputObj;

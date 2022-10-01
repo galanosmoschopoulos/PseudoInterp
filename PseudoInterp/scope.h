@@ -15,11 +15,12 @@ public:
 
 	bool operator<(const ObjKey& rhs) const
 	{
+		// Lexicographical (dictionary-like) comparison w.r.t scopeLevel and ID
 		return std::tie(scopeLevel, ID) < std::tie(rhs.scopeLevel, rhs.ID);
 	}
 };
 
-using ObjMap = std::map<ObjKey, Object*>; // That way the map is constructed with decreasing scopelevel objects
+using ObjMap = std::map<ObjKey, Object*>; // That way the map is constructed with increasing scopelevel objects
 
 class Scope
 {

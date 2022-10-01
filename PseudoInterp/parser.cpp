@@ -72,7 +72,7 @@ bool Parser::lessTabs(int& i) // Checks for identation errors, or if we have exi
 	for (i = 0; lexer.lookForw(i).getType() == TokenType::TAB; i++);
 	if (i < blockLevel)
 	{
-		// Less tabs than the current block level
+		// Less tabs than the current block level -> current block ended
 		return true;
 	}
 	if (i > blockLevel)
@@ -113,23 +113,23 @@ Statement* Parser::parseIf()
 	const auto statement = new IfStatement(lexer.getCurrToken().getPos());
 	TokenType currToken;
 	while ((currToken = lexer.getCurrToken().getType()) == TokenType::IF || currToken == TokenType::ELIF || currToken ==
-		TokenType::ELSE)
+		TokenType::ELSE) // While the current token is if/elif/else
 	{
 		// To parse the whole if-elif-else chain
 		lexer.scanToken();
 		ASTNode* condition = nullptr;
 
-		if (currToken != TokenType::ELSE)
+		if (currToken != TokenType::ELSE) // If it isn't 'else'
 		{
 			// Else doesn't have a condition
-			condition = (this->*precedenceTab[0].parserFunc)(precedenceTab);
+			condition = (this->*precedenceTab[0].parserFunc)(precedenceTab); // Parse the expression
 		}
 		else
 		{
-			condition = new LiteralNode(1, 0); // Always true
+			condition = new LiteralNode(true, 0); // Create a dummy condition that is always true
 		}
 
-		checkNewLine();
+		checkNewLine(); // Go to next line
 
 		CodeBlock* block = parseBlock(); // Parse block and add it
 		statement->addCase(condition, block);
@@ -137,7 +137,7 @@ Statement* Parser::parseIf()
 		if (currToken == TokenType::ELSE) break; // If we're on an else, we have finished
 
 		int nTabs = 0;
-		if (lessTabs(nTabs)) return statement; // Count the tabs. If less than expected, we are done
+		if (lessTabs(nTabs)) return statement; // Count the tabs in nTabs. If less than expected, we are done
 
 		if (TokenType nextTok; (nextTok = lexer.lookForw(nTabs).getType()) == TokenType::ELIF || nextTok ==
 			TokenType::ELSE)
