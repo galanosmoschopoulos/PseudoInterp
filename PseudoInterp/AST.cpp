@@ -275,7 +275,7 @@ nAryNode::nAryNode(ASTNode* mainOperand, const OperatorType opType, std::vector<
 Object* nAryNode::eval(Scope* scope, bool)
 {
 	Object* result = nullptr;
-	Object* mainObject = mainOperand->eval(scope);
+	Object* mainObject = nullptr;
 	std::vector<Object*> nObjects;
 	for (ASTNode* node : nOperands)
 	{
@@ -286,10 +286,15 @@ Object* nAryNode::eval(Scope* scope, bool)
 		switch (opType)
 		{
 		case OperatorType::SUBSCRIPT:
+			mainObject = mainOperand->eval(scope);
 			result = (*mainObject)[nObjects];
 			break;
 		case OperatorType::FUNCTION_CALL:
+			mainObject = mainOperand->eval(scope);
 			result = (*mainObject)(scope, nObjects);
+			break;
+		case OperatorType::LIST_INIT:
+			result = new Object(std::make_shared<ArrayContainer>(nObjects));
 			break;
 		default:
 			break;

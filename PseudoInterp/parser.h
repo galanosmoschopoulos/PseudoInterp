@@ -37,6 +37,7 @@ enum class OperatorType
 	FUNCTION_CALL,
 	SUBSCRIPT,
 	MEMBER_ACCESS,
+	LIST_INIT,
 	UNKNOWN
 };
 

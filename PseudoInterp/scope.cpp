@@ -158,8 +158,23 @@ static bool str_to_numerical(const std::string& s, T& i)
 
 void Scope::enableExternalFunctions() // Adds external functions to the scope. These are pre-existing objects that can be called to construct data structures, or to use output(), input(), etc
 {
-	addObj(Object([](const std::vector<Object*>& argVec) { return new Object(std::make_shared<ArrayContainer>(argVec)); }), "Array",
-	       true);
+	addObj(Object([](const std::vector<Object*>& argVec)
+	{
+		if (argVec.empty()) throw ArgumentError("At least 1 array size parameter expected.");
+		size_t currSize = 0;
+		std::vector<size_t> dimVec(argVec.size());
+		for (size_t i = 0; i != dimVec.size(); i++) {
+			if (const int* size = std::get_if<int>(&argVec[0]->data))
+			{
+				if (*size > 0) dimVec[i] = static_cast<size_t>(*size);
+				else throw ValueError("Array size parameter must be a positive integer.");
+			}
+			else throw TypeError("Array size parameter must be an integer.");
+		}
+
+		return new Object(std::make_shared<ArrayContainer>(dimVec));
+	}), "Array",true);
+
 	addObj(Object([](const std::vector<Object*>& argVec)
 	{
 		return new Object(std::make_shared<StackContainer>(argVec));

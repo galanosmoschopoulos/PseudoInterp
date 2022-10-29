@@ -353,6 +353,26 @@ ASTNode* Parser::parsePrimary(precedenceGroup*)
 	// Parses literals, identifiers, and parentheses
 	ASTNode* node;
 	const size_t pos = lexer.getCurrToken().getPos();
+	auto listParser = [&pos, this]()
+	{
+		std::vector<ASTNode*> nOperands;
+		if (lexer.lookForw(1).getType() != TokenType::R_SQ_BRACKET) // For the case where the list is empty "[]"
+		{
+			do
+			{
+				lexer.scanToken();
+				nOperands.push_back( // Parse an expression, but parse above the comma precedence (comma has another meaning here - it separates expressions and it isn't an operator)
+					(this->*precedenceTab[COMMA_PRECEDENCE + 1].parserFunc)(precedenceTab + COMMA_PRECEDENCE + 1));
+			}
+			while (lexer.getCurrToken().getType() == TokenType::COMMA); // If there's another comma, there are more
+			if (lexer.getCurrToken().getType() != TokenType::R_SQ_BRACKET)
+				throw ParsingError(std::string("] expected."), lexer.getCurrToken().getPos());
+			lexer.scanToken();
+		}
+		else lexer.scanToken(2); // If we have "[]", just skip both brackets
+		return nOperands;
+	};
+
 	switch (lexer.getCurrToken().getType())
 	{
 	case TokenType::TRUE_LIT:
@@ -397,6 +417,9 @@ ASTNode* Parser::parsePrimary(precedenceGroup*)
 			node = nullptr;
 			throw ParsingError(") expected - matching parentheses not found.", lexer.getCurrToken().getPos());
 		}
+		break;
+	case TokenType::L_SQ_BRACKET:
+		node = new nAryNode(nullptr, OperatorType::LIST_INIT, listParser(), pos);
 		break;
 	case TokenType::ID: // For object identifiers
 		node = new IDNode(lexer.getCurrToken().getLexeme(), pos);

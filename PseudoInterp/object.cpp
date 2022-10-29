@@ -19,9 +19,10 @@ ArrayContainer::ArrayContainer(const ArrayContainer& ac)
 ArrayContainer& ArrayContainer::operator=(const ArrayContainer& ac2)
 {
 	copyArrays(array,ac2.array);
+
 	return *this;
 }
-
+/*
 ArrayContainer::ArrayContainer(const std::vector<Object*>& dimVec)
 {
 	if (dimVec.empty()) throw ArgumentError("At least 1 array size parameter expected.");
@@ -42,7 +43,31 @@ ArrayContainer::ArrayContainer(const std::vector<Object*>& dimVec)
 		objPtr->setLval(true);
 		array.emplace_back(objPtr);
 	}
+}*/
+
+ArrayContainer::ArrayContainer(const std::vector<Object*>& listVec)
+{
+	for (size_t i = 0; i != listVec.size(); i++)
+	{
+		array.emplace_back(std::make_unique<Object>(*listVec[i]));
+	}
 }
+
+
+ArrayContainer::ArrayContainer(const std::vector<size_t>& dimVec)
+{
+	for (size_t i = 0; i != dimVec[0]; i++)
+	{
+		Object* objPtr = nullptr;
+		if(dimVec.size() == 1)
+			objPtr = new Object();
+		else
+			objPtr = new Object(std::make_shared<ArrayContainer>(std::vector(dimVec.begin() + 1, dimVec.end())));
+		objPtr->setLval(true);
+		array.emplace_back(objPtr);
+	}
+}
+
 
 Object* ArrayContainer::size(const std::vector<Object*>& argVec) const
 {
@@ -65,6 +90,7 @@ Scope& ArrayContainer::getMethodScope()
 	return methodScope;
 }
 
+
 void ArrayContainer::addMethods()
 {
 	methodScope.addObj(Object([this](const std::vector<Object*>& args) { return size(args); }), "size", true);
@@ -84,10 +110,15 @@ Object* ArrayContainer::getArray(const std::vector<Object*>& idxVec) const
 
 	if (currIdx >= array.size())
 		throw RangeError("Array subscript out of range.");
-	if (idxVec.size() == 1)
+	if (idxVec.size() == 1) {
+		/*
+		if (!array[currIdx]->isLval())
+			return new Object(*array[currIdx]); // Provide a copy of the temp object*/
 		return array[currIdx].get(); // Convert std::unique_ptr to raw pointer
+	}
 
 	return (*array[currIdx])[std::vector<Object*>(idxVec.begin() + 1, idxVec.end())];
+
 }
 
 StringContainer::StringContainer() { addMethods(); }

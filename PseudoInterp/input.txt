@@ -1,5 +1,2 @@
-function output(i)
-	for j from 0 to i
-		output(j)
-
-foo(11)
+A = [[0, 1, [10, 11]], [3, 4, 5], 6]
+output(A[0,1])

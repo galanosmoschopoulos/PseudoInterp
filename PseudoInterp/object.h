@@ -35,12 +35,14 @@ public:
 	ArrayContainer(const ArrayContainer&);
 	ArrayContainer& operator=(const ArrayContainer&);
 	explicit ArrayContainer(const std::vector<Object*>&);
+	ArrayContainer(const std::vector<size_t>&);
 	void addMethods();
 	[[nodiscard]] Object* getArray(const std::vector<Object*>&) const;
 	[[nodiscard]] Object* size(const std::vector<Object*>&) const;
 	void copyArrays(ArrayType& a1, const ArrayType& a2) const;
 	Scope& getMethodScope();
 private:
+	//bool isTempArray = false;
 	ArrayType array;
 	Scope methodScope;
 };
