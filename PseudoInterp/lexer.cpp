@@ -17,8 +17,8 @@ void Lexer::setInput(const std::string& strIn)
 }
 
 void Lexer::scanToken(const int n) { tokenListIndex += n; } // Goes to next token
-Token Lexer::lookForw(const size_t i) { return tokenList[tokenListIndex + i]; } // Returns the ith next token
-Token Lexer::getCurrToken() { return lookForw(0); } // Returns current token
+Lexer::Token Lexer::lookForw(const size_t i) { return tokenList[tokenListIndex + i]; } // Returns the ith next token
+Lexer::Token Lexer::getCurrToken() { return lookForw(0); } // Returns current token
 
 
 void Lexer::lexInput()
@@ -30,12 +30,12 @@ void Lexer::lexInput()
 	{
 		if (i == str.size()) // If it has finished, write End Of File token to list
 		{
-			tokenList.emplace_back("", TokenType::EOFILE, i);
+			tokenList.emplace_back("", Lexer::Lexer::TokenType::EOFILE, i);
 			break;
 		}
 		std::string tmpLexeme;
 		bool foundFixedToken = false;
-		for (TokenDescriptor& td : fixedTokenList) // Check every fixed token (i.e. keywords)
+		for (Lexer::TokenDescriptor& td : fixedTokenList) // Check every fixed token (i.e. keywords)
 		{
 			size_t p = 0;
 			// Count the matching characters
@@ -47,7 +47,7 @@ void Lexer::lexInput()
 				if (td.isWordToken() && str[i + p] != ' ' && str[i + p] != '\n') break;
 
 				foundFixedToken = true;
-				if (td.getType() == TokenType::COMMENT) // If comment, skip until the end of line
+				if (td.getType() == Lexer::Lexer::TokenType::COMMENT) // If comment, skip until the end of line
 				{
 					for (; str[i] != '\n' && i < str.size(); i++);
 					break;
@@ -60,12 +60,12 @@ void Lexer::lexInput()
 		if (foundFixedToken) continue;
 		if (isdigit(str[i])) // If it starts with a digit
 		{
-			auto tType = TokenType::INT_LIT;
+			auto tType = Lexer::Lexer::TokenType::INT_LIT;
 			while (isdigit(str[i]) && i < str.size()) // Store all continuous digits
 				tmpLexeme.push_back(str[i++]);
 			if (str[i] == '.') // If we meet a decimal separator, it's a float
 			{
-				tType = TokenType::FLOAT_LIT;
+				tType = Lexer::Lexer::TokenType::FLOAT_LIT;
 				tmpLexeme.push_back(str[i++]);
 			}
 			while (isdigit(str[i]) && i < str.size()) // Store all continuous digits
@@ -77,13 +77,13 @@ void Lexer::lexInput()
 		{
 			while (isalnum(str[i]) || str[i] == '_') // If it continues with alphanumeric or _
 				tmpLexeme.push_back(str[i++]);
-			tokenList.emplace_back(tmpLexeme, TokenType::ID, i - tmpLexeme.size()); // Add identifier token
+			tokenList.emplace_back(tmpLexeme, Lexer::Lexer::TokenType::ID, i - tmpLexeme.size()); // Add identifier token
 		}
 		else if (str[i] == '\'') // If we meet quotation mark
 		{
 			i++;
 			// Use lexChar() to parse a character or an ASCII escape sequence
-			tokenList.emplace_back(lexChar(i), TokenType::CHAR_LIT, i - tmpLexeme.size());
+			tokenList.emplace_back(lexChar(i), Lexer::Lexer::TokenType::CHAR_LIT, i - tmpLexeme.size());
 			if (str[i] != '\'') throw LexingError("Lexing error: char literal not defined correctly.", i);
 			i++;
 		}
@@ -95,7 +95,7 @@ void Lexer::lexInput()
 				tmpLexeme += lexChar(i);
 			}
 			i++;
-			tokenList.emplace_back(tmpLexeme, TokenType::STRING_LIT, i - tmpLexeme.size()); // Add string literal token
+			tokenList.emplace_back(tmpLexeme, Lexer::Lexer::TokenType::STRING_LIT, i - tmpLexeme.size()); // Add string literal token
 		}
 
 		else if (isspace(str[i]))
@@ -104,7 +104,7 @@ void Lexer::lexInput()
 		}
 		else
 		{
-			tokenList.emplace_back(std::string(1, str[i]), TokenType::UNKNOWN, i);
+			tokenList.emplace_back(std::string(1, str[i]), Lexer::Lexer::TokenType::UNKNOWN, i);
 			++i;
 			// If it doesn't match the above, there's a problem
 		}
@@ -187,41 +187,41 @@ std::string Lexer::lexChar(size_t& i) const
 	return tmpChar;
 }
 
-TokenDescriptor::TokenDescriptor() = default;
+Lexer::TokenDescriptor::TokenDescriptor() = default;
 
-TokenDescriptor::TokenDescriptor(std::string tokStr, const TokenType tokType) : lexeme(std::move(tokStr)), type(tokType)
+Lexer::TokenDescriptor::TokenDescriptor(std::string tokStr, const Lexer::Lexer::TokenType tokType) : lexeme(std::move(tokStr)), type(tokType)
 {
 }
 
-TokenDescriptor::TokenDescriptor(std::string tokStr, const TokenType tokType, bool wordToken) : lexeme(std::move(tokStr)), type(tokType), wordToken(wordToken)
+Lexer::TokenDescriptor::TokenDescriptor(std::string tokStr, const Lexer::Lexer::TokenType tokType, bool wordToken) : lexeme(std::move(tokStr)), type(tokType), wordToken(wordToken)
 {
 }
 
-std::string TokenDescriptor::getLexeme() { return lexeme; }
-size_t TokenDescriptor::getLen() const { return lexeme.size(); }
-TokenType TokenDescriptor::getType() const { return type; }
+std::string Lexer::TokenDescriptor::getLexeme() { return lexeme; }
+size_t Lexer::TokenDescriptor::getLen() const { return lexeme.size(); }
+Lexer::Lexer::TokenType Lexer::TokenDescriptor::getType() const { return type; }
 
-TokenType TokenDescriptor::getOppositeType() const
+Lexer::Lexer::TokenType Lexer::TokenDescriptor::getOppositeType() const
 {
 	switch (type)
 	{
-	case TokenType::L_PAREN: return TokenType::R_PAREN;
-	case TokenType::R_PAREN: return TokenType::L_PAREN;
-	case TokenType::L_SQ_BRACKET: return TokenType::R_SQ_BRACKET;
-	case TokenType::R_SQ_BRACKET: return TokenType::L_SQ_BRACKET;
-	default: return TokenType::NEWLINE;
+	case Lexer::TokenType::L_PAREN: return Lexer::TokenType::R_PAREN;
+	case Lexer::TokenType::R_PAREN: return Lexer::TokenType::L_PAREN;
+	case Lexer::TokenType::L_SQ_BRACKET: return Lexer::TokenType::R_SQ_BRACKET;
+	case Lexer::TokenType::R_SQ_BRACKET: return Lexer::TokenType::L_SQ_BRACKET;
+	default: return Lexer::TokenType::NEWLINE;
 	}
 }
 
-bool TokenDescriptor::isWordToken()
+bool Lexer::TokenDescriptor::isWordToken()
 {
 	return wordToken;
 }
 
-Token::Token(const std::string& tokStr, const TokenType tokType, const size_t tokPos) : pos(tokPos)
+Lexer::Token::Token(const std::string& tokStr, const Lexer::TokenType tokType, const size_t tokPos) : pos(tokPos)
 {
 	lexeme = tokStr;
 	type = tokType;
 }
 
-size_t Token::getPos() const { return pos; }
+size_t Lexer::Token::getPos() const { return pos; }

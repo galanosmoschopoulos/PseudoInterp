@@ -4,28 +4,29 @@
 
 class Object;
 
-class ObjKey // It's defined so that a smaller scopelevel corresponds to smaller ObjKey
-{
-public:
-	ObjKey();
-	ObjKey(int, int, std::string);
-	int scopeLevel = 0;
-	int funcLevel = 0;
-	std::string ID;
 
-	bool operator<(const ObjKey& rhs) const
-	{
-		// Lexicographical (dictionary-like) comparison w.r.t scopeLevel and ID
-		return std::tie(scopeLevel, ID) < std::tie(rhs.scopeLevel, rhs.ID);
-	}
-};
-
-using ObjMap = std::map<ObjKey, Object*>; // That way the map is constructed with increasing scopelevel objects
 
 class Scope
 {
 public:
 	Scope();
+	class ObjKey // It's defined so that a smaller scopelevel corresponds to smaller ObjKey
+	{
+	public:
+		ObjKey();
+		ObjKey(int, int, std::string);
+		int scopeLevel = 0;
+		int funcLevel = 0;
+		std::string ID;
+
+		bool operator<(const ObjKey& rhs) const
+		{
+			// Lexicographical (dictionary-like) comparison w.r.t scopeLevel and ID
+			return std::tie(scopeLevel, ID) < std::tie(rhs.scopeLevel, rhs.ID);
+		}
+	};
+	using ObjMap = std::map<ObjKey, Object*>; // That way the map is constructed with increasing scopelevel objects
+
 	ObjMap& getMap();
 	[[nodiscard]] int getLevel() const;
 	[[nodiscard]] int getFuncLevel() const;
@@ -42,6 +43,7 @@ public:
 	Scope* getRestricted(int);
 	void enableExternalFunctions();
 private:
+	
 	ObjMap scopeMap{};
 	// Scope level increases when we enter a nested scope (i.e. in a code block).
 	// When a variable at a higher scope level has the same identifier as one in a lower, the one in the higher will be chosen if the name is mentioned

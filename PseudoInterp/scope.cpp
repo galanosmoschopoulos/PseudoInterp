@@ -3,16 +3,16 @@
 #include <iostream>
 #include <ranges>
 
-ObjKey::ObjKey() = default;
+Scope::ObjKey::ObjKey() = default;
 
-ObjKey::ObjKey(const int scopeLevel, const int funcLevel, std::string ID) : scopeLevel(scopeLevel),
+Scope::ObjKey::ObjKey(const int scopeLevel, const int funcLevel, std::string ID) : scopeLevel(scopeLevel),
                                                                             funcLevel(funcLevel), ID(std::move(ID))
 {
 }
 
 Scope::Scope() = default;
 
-ObjMap& Scope::getMap()
+Scope::ObjMap& Scope::getMap()
 {
 	return scopeMap;
 }

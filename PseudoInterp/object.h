@@ -17,7 +17,6 @@ class Scope;
 class ArrayContainer;
 class StackContainer;
 class StringContainer;
-class VariantValueType;
 using ExternalFunction = std::function<Object*(const std::vector<Object*>&)>;
 using VariantType = std::variant<int, std::shared_ptr<StringContainer>, bool, float, char,
 								 std::shared_ptr<ArrayContainer>,std::shared_ptr<StackContainer>,
@@ -36,13 +35,13 @@ public:
 	ArrayContainer& operator=(const ArrayContainer&);
 	explicit ArrayContainer(const std::vector<Object*>&);
 	ArrayContainer(const std::vector<size_t>&);
-	void addMethods();
 	[[nodiscard]] Object* getArray(const std::vector<Object*>&) const;
 	[[nodiscard]] Object* size(const std::vector<Object*>&) const;
 	void copyArrays(ArrayType& a1, const ArrayType& a2) const;
 	Scope& getMethodScope();
 private:
 	//bool isTempArray = false;
+	void addMethods();
 	ArrayType array;
 	Scope methodScope;
 };
@@ -56,13 +55,13 @@ public:
 	StringContainer& operator=(const StringContainer&);
 	explicit StringContainer(const std::vector<Object*>&);
 	explicit StringContainer(const std::string&);
-	void addMethods();
 	[[nodiscard]] Object* getChar(const std::vector<Object*>&);
 	[[nodiscard]] std::string getStr() const;
 	Object* length(const std::vector<Object*>&);
 	void copyStrings(StringType&, const StringType&) const;
 	Scope& getMethodScope();
 private:
+	void addMethods();
 	Scope methodScope;
 	StringType string;
 };
@@ -75,13 +74,13 @@ public:
 	StackContainer(const StackContainer& sc2);
 	StackContainer& operator=(const StackContainer& sc2);
 	explicit StackContainer(const std::vector<Object*>&);
-	void addMethods();
 	[[nodiscard]] Object* push(const std::vector<Object*>&);
 	[[nodiscard]] Object* pop(const std::vector<Object*>&);
 	[[nodiscard]] Object* isEmpty(const std::vector<Object*>& argVec) const;
 	void copyStacks(StackType& stack1, const StackType& stack2) const;
 	Scope& getMethodScope();
 private:
+	void addMethods();
 	StackType stack;
 	Scope methodScope;
 };
@@ -93,13 +92,13 @@ public:
 	QueueContainer(const QueueContainer&);
 	QueueContainer& operator=(const QueueContainer&);
 	explicit QueueContainer(const std::vector<Object*>&);
-	void addMethods();
 	[[nodiscard]] Object* enqueue(const std::vector<Object*>&);
 	[[nodiscard]] Object* dequeue(const std::vector<Object*>&);
 	[[nodiscard]] Object* isEmpty(const std::vector<Object*>& argVec) const;
 	void copyQueues(QueueType&, const QueueType&) const;
 	Scope& getMethodScope();
 private:
+	void addMethods();
 	QueueType queue;
 	Scope methodScope;
 };
@@ -111,7 +110,6 @@ public:
 	CollectionContainer(const CollectionContainer&);
 	CollectionContainer& operator=(const CollectionContainer&);
 	explicit CollectionContainer(const std::vector<Object*>&);
-	void addMethods();
 	[[nodiscard]] Object* addItem(const std::vector<Object*>&);
 	[[nodiscard]] Object* getNext(const std::vector<Object*>&);
 	[[nodiscard]] Object* resetNext(const std::vector<Object*>& argVec);
@@ -120,6 +118,7 @@ public:
 	void copyCollections(CollectionType&, const CollectionType&) const;
 	Scope& getMethodScope();
 private:
+	void addMethods();
 	int index = -1;
 	CollectionType collection;
 	Scope methodScope;

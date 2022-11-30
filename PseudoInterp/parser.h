@@ -54,7 +54,7 @@ class Scope;
 #define MAX_GROUPS 15
 
 using OT = OperatorType;
-using TT = TokenType;
+using TT = Lexer::TokenType;
 
 class Parser
 {
@@ -69,7 +69,7 @@ private:
 	// I know this is a hot mess, but I didn't know any better.
 	struct precedenceGroup
 	{
-		std::map<TokenType, OperatorType> findOp{};
+		std::map<Lexer::TokenType, OperatorType> findOp{};
 		ASTNode* (Parser::* parserFunc)(precedenceGroup*){};
 	};
 
