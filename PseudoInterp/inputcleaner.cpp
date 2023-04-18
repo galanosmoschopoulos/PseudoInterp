@@ -1,10 +1,13 @@
-﻿#include "inputcleaner.h"
+﻿/* inputcleaner.cpp */
+
+#include "inputcleaner.h"
 #include <algorithm>
 #include <sstream>
 
 InputCleaner::InputCleaner() = default;
 
-InputCleaner::InputCleaner(std::string inputStr) : originalStr(std::move(inputStr))
+InputCleaner::InputCleaner(std::string inputStr) : originalStr(
+	std::move(inputStr))
 {
 }
 
@@ -49,15 +52,15 @@ std::string InputCleaner::getErrorLine(const size_t errPos) const
 	size_t currLen = 0, nlines = 0, posInLine = 0;
 	for (const auto& subStr : subStrVec)
 	{
-		// Given a pos in a multi-line string, it finds the num of line and the pos in that line
+		// Given a pos in a multi-line string, find the # of line and pos in that line
 		if (currLen + subStr.size() <= errPos)
 		{
-			currLen += subStr.size();
-			nlines++;
+			currLen += subStr.size(); // Add the length of curr line
+			nlines++; // Another line!
 		}
 		else
 		{
-			posInLine = errPos - currLen;
+			posInLine = errPos - currLen; // Calculate position in line
 			break;
 		}
 	}
@@ -66,14 +69,17 @@ std::string InputCleaner::getErrorLine(const size_t errPos) const
 		nlines = subStrVec.size() - 1;
 		posInLine = subStrVec.rbegin()->size() - 1;
 	}
-	else if (posInLine >= subStrVec[nlines].size()) posInLine = subStrVec[nlines].size() - 1;
-	// And account for this weird error
+	else if (posInLine >= subStrVec[nlines].size()) posInLine = subStrVec[
+		nlines].size() - 1; // If the error is at the end of the line,
+							// we have to avoid index error
 
 	ss << "Line: " << nlines + sumOfDeletedStrs[nlines] + 1 << '\n';
 	std::string s = subStrVec[nlines];
-	std::ranges::replace(s.begin(), s.end(), '\t', ' '); // Replace tabs with space to save space in the error printout
+	std::ranges::replace(s.begin(), s.end(), '\t', ' ');
+	// Replace tabs with space to save space in the error printout
 	ss << s;
-	for (size_t i = 0; i < posInLine; ++i) ss << ' '; // Print the '^' symbol to mark exact error location
+	for (size_t i = 0; i < posInLine; ++i) ss << ' ';
+	// Print the '^' symbol to mark exact error location
 	ss << "^";
 	return ss.str();
 }

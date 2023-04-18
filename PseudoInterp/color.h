@@ -101,7 +101,9 @@ namespace hue
 	int get()
 	{
 		CONSOLE_SCREEN_BUFFER_INFO i;
-		return GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &i) ? i.wAttributes : BAD_COLOR;
+		return GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &i)
+			       ? i.wAttributes
+			       : BAD_COLOR;
 	}
 
 	int get_text()
@@ -117,7 +119,8 @@ namespace hue
 	void set(int c)
 	{
 		if (is_good(c))
-			SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), static_cast<WORD>(c));
+			SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
+			                        static_cast<WORD>(c));
 	}
 
 	void set(int a, int b)
@@ -1895,7 +1898,8 @@ namespace hue
 namespace dye
 {
 	template <typename T>
-	using bar = std::conditional_t<std::is_same_v<T, const char*>, std::string, T>;
+	using bar = std::conditional_t<
+		std::is_same_v<T, const char*>, std::string, T>;
 
 	template <typename T>
 	class colorful;
@@ -2013,7 +2017,8 @@ namespace dye
 		{
 		}
 
-		item(T t, std::string a, std::string b) : thing(std::move(t)), color(hue::stoc(a, b))
+		item(T t, std::string a, std::string b) : thing(std::move(t)),
+		                                          color(hue::stoc(a, b))
 		{
 		}
 

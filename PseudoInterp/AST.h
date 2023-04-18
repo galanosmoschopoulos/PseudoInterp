@@ -1,3 +1,5 @@
+/* AST.h */
+
 #pragma once
 #include "object.h"
 #include "parser.h"
@@ -15,13 +17,22 @@ static void cleanTmps(std::initializer_list<Object*>);
 Object& checkLval(const Object& obj);
 
 
-/* Everything is inside a codeblock. A codeblock contains statements. Statements may be expressions(i.e. a = 1 + foo()), return statements, if / else if / else, while, for, and function definitions
-Normally, neither codeblocks nor statements should return anything. However, if we have a return statement within a function, then execution must stop and the return value must be propagated to the
-function call operator. Hence, a return statement may return an object. If a codeblock executes a statement that returns something other than null pointer, it knows that a return statement has been
-called, it halts execution of subsequent statements and returns the same pointer. Statements that contain codeblocks (i.e. if statement) simply return whatever the codeblock returns.
-
-An expression is a tree of nodes that represent operators, literals and identifiers (IDs). It is built through the parsing process. The tree is traversed with post-order traversal and evaluated.
-I.e. for the expression a = 5 + foo(3). Everything is an ASTNode. And operators hold pointers to those nodes.
+/* Everything is inside a codeblock. A codeblock contains statements. Statements may be
+ * expressions(i.e. a = 1 + foo()), return statements, if / else if / else, while, for,
+ * and function definitions.
+ * Normally, neither codeblocks nor statements should return anything. However, if we have
+ * a return statement within a function, then execution must stop and the return value
+ * must be propagated to the function call operator. Hence, a return statement may return
+ * an object. If a codeblock executes a statement that returns something other than null
+ * pointer, it knows that a return statement has been called, it halts execution of
+ * subsequent statements and returns the same pointer. Statements that contain codeblocks
+ * (i.e. if statement) simply return whatever the codeblock returns.
+ *
+ * An expression is a tree of nodes that represent operators, literals and identifiers
+ * (IDs).It is built through the parsing process. The tree is traversed with post-order
+ * traversal and evaluated.
+ * I.e. for the expression a = 5 + foo(3). Everything is an ASTNode. And operators hold
+ * pointers to those nodes.
 		   =
 		  / \
 		 /   \
@@ -49,7 +60,9 @@ class Statement
 public:
 	Statement();
 	virtual ~Statement();
-	virtual Object* eval(Scope*, bool isInFunction); // Is in function is used to determine whether a return statement is valid. (return is invalid outside a function)
+	virtual Object* eval(Scope*, bool isInFunction);
+	// Is in function is used to determine whether a return statement is valid.
+	// (return is invalid outside a function)
 protected:
 	size_t pos = 0; // Holds the position of the statement in the source code
 };
@@ -59,10 +72,12 @@ class IfStatement final : public Statement
 public:
 	IfStatement();
 	~IfStatement() override;
-	explicit IfStatement(size_t);
+	explicit IfStatement(size_t); // Contructor argument is the location in code
 	IfStatement(ASTNode*, CodeBlock*, size_t);
 	Object* eval(Scope*, bool isInFunction) override;
-	void addCase(ASTNode*, CodeBlock*); // A 'case' is a branch in an if - elif - else chain. The minimum is 2 cases (an if and an else).
+	void addCase(ASTNode*, CodeBlock*);
+	// A 'case' is a branch in an if - elif - else chain. The minimum is 2
+	// cases (an if and an else).
 private:
 	std::vector<std::pair<ASTNode*, CodeBlock*>> cases{};
 };
@@ -72,6 +87,7 @@ class WhileStatement final : public Statement
 public:
 	WhileStatement();
 	~WhileStatement() override;
+	// Requires a condition, a block, and the location in code
 	WhileStatement(ASTNode*, CodeBlock*, size_t);
 	Object* eval(Scope*, bool isInFunction) override;
 private:
@@ -84,6 +100,7 @@ class ForStatement final : public Statement
 public:
 	ForStatement();
 	~ForStatement() override;
+	// Requires the counter var. node, the conditions, block, and location
 	ForStatement(ASTNode*, ASTNode*, ASTNode*, CodeBlock*, size_t);
 	Object* eval(Scope*, bool isInFunction) override;
 private:
@@ -98,6 +115,7 @@ class ExprStatement final : public Statement
 public:
 	ExprStatement();
 	~ExprStatement() override;
+	// Requires simply a pointer to an expression tree, and its location in code
 	ExprStatement(ASTNode*, size_t);
 	Object* eval(Scope*, bool isInFunction) override;
 private:
@@ -111,8 +129,10 @@ public:
 	~ReturnStatement() override;
 	ReturnStatement(ASTNode*, size_t);
 	Object* eval(Scope*, bool isInFunction) override;
+	// if isInFunction is false, eval() cannot be executed as return statements
+	// can only be within functions
 private:
-	ASTNode* returnRoot = nullptr;
+	ASTNode* returnRoot = nullptr; // The expression to be returned
 };
 
 class FunctionDefStatement final : public Statement
@@ -120,6 +140,8 @@ class FunctionDefStatement final : public Statement
 public:
 	FunctionDefStatement();
 	~FunctionDefStatement() override;
+	// Requires a node for its name, a vector of parameters (IDNodes)
+	// a codeblock and its location
 	FunctionDefStatement(ASTNode*, std::vector<ASTNode*>, CodeBlock*, size_t);
 	Object* eval(Scope*, bool) override;
 private:
@@ -129,11 +151,11 @@ private:
 };
 
 
-class ASTNode
+class ASTNode // Base class for nodes
 {
 public:
 	ASTNode();
-	virtual ~ASTNode();
+	virtual ~ASTNode(); // Destructor is virtual
 	virtual Object* eval(Scope*, bool lSide = false);
 	void setForceRval(bool);
 protected:
@@ -141,7 +163,8 @@ protected:
 	size_t pos = 0;
 };
 
-class nAryNode final : public ASTNode // For function call operator and subscript operator
+class nAryNode final : public ASTNode
+	// For function call operator and subscript operator
 {
 public:
 	nAryNode();
@@ -150,7 +173,8 @@ public:
 	Object* eval(Scope* scope, bool lSide = false) override;
 private:
 	OperatorType opType = OperatorType::UNKNOWN;
-	// I.e. in the expression foo(a, b), foo is the main operand and a, b go in nOperands
+	// I.e. in the expression foo(a, b), foo is the main operand and a, b go
+	// in nOperands
 	ASTNode* mainOperand = nullptr;
 	std::vector<ASTNode*> nOperands{};
 };
@@ -164,8 +188,8 @@ public:
 	Object* eval(Scope*, bool lSide = false) override;
 private:
 	OperatorType opType = OperatorType::UNKNOWN;
-	ASTNode* left = nullptr;
-	ASTNode* right = nullptr;
+	ASTNode* left = nullptr; // left operator
+	ASTNode* right = nullptr; // right operator
 };
 
 
@@ -175,7 +199,8 @@ public:
 	LiteralNode();
 	~LiteralNode() override;
 
-	explicit LiteralNode(auto val, const size_t position) : literal(new Object(val))
+	explicit LiteralNode(auto val, const size_t position) : literal(
+		new Object(val)) // Constructor can accept any type
 	{
 		pos = position;
 	}

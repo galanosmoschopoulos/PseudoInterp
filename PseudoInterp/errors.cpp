@@ -1,8 +1,15 @@
+/* errors.cpp */
+
 #include "errors.h"
 
-CustomError::CustomError(std::string msg, const size_t pos) : message(std::move(msg)), position(pos)
+/* -------------------------------------------------------------------- */
+/* Everything in this file is simply getters, setters, and constructors */
+/* ---------------------------------------------------------------------*/
+
+CustomError::CustomError(std::string msg, const size_t pos) :
+	message(std::move(msg)), position(pos)
 {
-	posSet = true;
+	posSet = true;// Once the position is set, we must take note of that
 }
 
 CustomError::CustomError(std::string msg) : message(std::move(msg))
@@ -16,7 +23,7 @@ size_t CustomError::getPos() const { return position; }
 void CustomError::setPos(const size_t pos)
 {
 	position = pos;
-	posSet = true;
+	posSet = true; // Once the position is set, we must take note of that
 }
 
 bool CustomError::isPosSet() const
@@ -28,7 +35,8 @@ bool CustomError::isPosSet() const
 ValueError::ValueError() = default;
 
 ValueError::ValueError(const std::string& msg, const size_t pos)
-{
+{ /* An error is characterized by its position(where it occured), and its
+	 specific message */
 	message = msg;
 	position = pos;
 	posSet = true;
@@ -39,8 +47,10 @@ ValueError::ValueError(const std::string& msg)
 	message = msg;
 }
 
+// The what function provides error-specific text.
 std::string ValueError::what() { return "Value Error: " + message; }
-
+// For each derived error class, the error text prefix is different
+// I.e. for value errors it must be 'ValueError'
 TypeError::TypeError() = default;
 
 TypeError::TypeError(const std::string& msg, const size_t pos)

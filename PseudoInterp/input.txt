@@ -1,1 +1,17 @@
-for 1 from 
+N = 10
+A = [3, 1, 45, 33, 98, 0, 34, 22, 21, 46]
+
+S = Stack()
+Q = Queue()
+
+loop for i from 0 to N-1
+	S.push(A[i])
+
+loop while not S.isEmpty()
+	Q.enqueue(S.pop())
+
+str = "Reversed: "
+loop while not Q.isEmpty()
+	str = str + Q.dequeue() + " "
+
+output(str)

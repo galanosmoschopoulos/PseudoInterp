@@ -1,3 +1,5 @@
+/* lexer.h */
+
 #pragma once
 #include <string>
 #include <vector>
@@ -6,9 +8,11 @@ class Lexer
 {
 public:
 	Lexer();
+
 	enum class TokenType
 	{
-		// Enumeration of all token types
+		// Enumeration of all token types, used by the parser to connect
+		// to corresponding operators
 		RETURN_TOK,
 		FUNCTION_DEF,
 		L_PAREN,
@@ -26,6 +30,8 @@ public:
 		STAR,
 		FORW_SLASH,
 		PERCENT,
+		DIV,
+		DIV_EQ,
 		PLUS_EQ,
 		MINUS_EQ,
 		STAR_EQ,
@@ -54,8 +60,13 @@ public:
 		NEWLINE,
 		WHILE,
 		IF,
+		THEN,
 		ELIF,
 		ELSE,
+		AND,
+		OR,
+		NOT,
+		MOD,
 		FOR,
 		FROM,
 		TO,
@@ -75,15 +86,16 @@ public:
 		TokenDescriptor();
 		TokenDescriptor(std::string, TokenType);
 		TokenDescriptor(std::string, TokenType, bool wordToken);
-		std::string getLexeme();
+		std::string getLexeme(); // Returns the actual token text = lexeme
 		[[nodiscard]] size_t getLen() const;
 		[[nodiscard]] TokenType getType() const;
-		[[nodiscard]] TokenType getOppositeType() const;
+		[[nodiscard]] TokenType getOppositeType() const; // I.e. if '(' return ')'
 		bool isWordToken();
 	protected:
 		std::string lexeme;
 		TokenType type = TokenType::UNKNOWN;
-		bool wordToken = false;
+		bool wordToken = false; // A word token is expected to end with a
+		// white space, in contrast to a symbol token (i.e. '+')
 	};
 
 	class Token : public TokenDescriptor
@@ -101,20 +113,22 @@ public:
 	explicit Lexer(std::string);
 	void setInput(const std::string&);
 	Token getCurrToken();
-	Token lookForw(size_t);
-	void scanToken(int n = 1);
-	void lexInput();
+	Token lookForw(size_t); // Look forward in the token list
+	void scanToken(int n = 1); // Proceed to next token
+	void lexInput(); // Run elxer
 
 private:
-	std::string lexChar(size_t& i) const;
-	std::vector<Token> tokenList;
-	size_t tokenListIndex = 0;
-	std::string str;
+	std::string lexChar(size_t& i) const; // Used to parse ASCII sequences
+	std::vector<Token> tokenList; // Contains a series of tokens
+	size_t tokenListIndex = 0; // This increments
+	std::string str; // The code to be lexed
 	std::vector<TokenDescriptor> fixedTokenList = {
 		// A list of keywords, relating lexeme to token type
-		TokenDescriptor("while", TokenType::WHILE, true),
+		TokenDescriptor("loop while", TokenType::WHILE, true),
+		//TokenDescriptor("while", TokenType::WHILE, true),
 		TokenDescriptor("if", TokenType::IF, true),
-		TokenDescriptor("elif", TokenType::ELIF, true),
+		TokenDescriptor("then", TokenType::THEN, true),
+		TokenDescriptor("else if", TokenType::ELIF, true),
 		TokenDescriptor("else", TokenType::ELSE, true),
 		TokenDescriptor("//", TokenType::COMMENT),
 		TokenDescriptor("+=", TokenType::PLUS_EQ),
@@ -149,12 +163,19 @@ private:
 		TokenDescriptor(".", TokenType::DOT),
 		TokenDescriptor("\t", TokenType::TAB),
 		TokenDescriptor("\n", TokenType::NEWLINE),
-		TokenDescriptor("for", TokenType::FOR, true),
+		//TokenDescriptor("div=", TokenType::DIV_EQ),
+		TokenDescriptor("div", TokenType::DIV, true),
+		TokenDescriptor("mod", TokenType::MOD, true),
+		TokenDescriptor("and", TokenType::AND, true),
+		TokenDescriptor("or", TokenType::OR, true),
+		TokenDescriptor("not", TokenType::NOT, true),
+		TokenDescriptor("loop for", TokenType::FOR, true),
+		//TokenDescriptor("for", TokenType::FOR, true),
 		TokenDescriptor("from", TokenType::FROM, true),
 		TokenDescriptor("to", TokenType::TO, true),
 		TokenDescriptor("true", TokenType::TRUE_LIT, true),
 		TokenDescriptor("false", TokenType::FALSE_LIT, true),
 		TokenDescriptor("return", TokenType::RETURN_TOK, true),
-		TokenDescriptor("function", TokenType::FUNCTION_DEF, true)
+		TokenDescriptor("method", TokenType::FUNCTION_DEF, true),
 	};
 };

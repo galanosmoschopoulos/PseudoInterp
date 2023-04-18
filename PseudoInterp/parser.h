@@ -1,6 +1,8 @@
+/* parser.h */
+
 #pragma once
 enum class OperatorType
-{
+{ // Enumeration for all operators. Used to denote the operator in the AST nodes
 	COMMA,
 	UNARY_PLUS,
 	UNARY_NEGATION,
@@ -9,11 +11,13 @@ enum class OperatorType
 	MULTIPLICATION,
 	DIVISION,
 	MODULO,
+	DIV,
 	ADDITION_ASSIGN,
 	SUBTRACTION_ASSIGN,
 	MULTIPLICATION_ASSIGN,
 	DIVISION_ASSIGN,
 	MODULO_ASSIGN,
+	DIV_ASSIGN,
 	OR,
 	AND,
 	NOT,
@@ -51,7 +55,7 @@ class ASTNode;
 class Object;
 class Scope;
 
-#define MAX_GROUPS 15
+#define MAX_GROUPS 15 // The maximum amount of operator groups
 
 using OT = OperatorType;
 using TT = Lexer::TokenType;
@@ -65,7 +69,8 @@ public:
 private:
 	Lexer lexer;
 
-	// Each precedence group consists of a map linking tokens to their corresponding operators, and a pointer to a function to parse those operators
+	// Each precedence group consists of a map linking tokens to their corresponding
+	// operators, and a pointer to a function to parse those operators
 	// I know this is a hot mess, but I didn't know any better.
 	struct precedenceGroup
 	{
@@ -73,36 +78,51 @@ private:
 		ASTNode* (Parser::* parserFunc)(precedenceGroup*){};
 	};
 
-#ifndef COMMA_PRECEDENCE
-#define COMMA_PRECEDENCE 0
+#ifndef COMMA_PRECEDENCE // The precedence level of comma.
+#define COMMA_PRECEDENCE 0 // Used by the parseParenthAndDot function
 #endif
 
 	// TT is tokentype, OT is operator type
 	precedenceGroup precedenceTab[MAX_GROUPS] = {
 		// Precedence = 0
-		{{{TT::COMMA, OT::COMMA}}, &Parser::parseBinLeft}, 
+		{{{TT::COMMA, OT::COMMA}}, &Parser::parseBinLeft},
 
 		// Precedence = 1
-		{ 
+		{
 			{
-				{TT::EQ, OT::ASSIGNMENT}, // 'equals' token ("=") is linked to assignment operator.
+				{TT::EQ, OT::ASSIGNMENT},
+				// 'equals' token ("=") is linked to assignment operator.
 				{TT::PLUS_EQ, OT::ADDITION_ASSIGN},
 				{TT::MINUS_EQ, OT::SUBTRACTION_ASSIGN},
 				{TT::STAR_EQ, OT::MULTIPLICATION_ASSIGN},
 				{TT::FORW_SLASH_EQ, OT::DIVISION_ASSIGN},
-				{TT::PERCENT_EQ, OT::MODULO_ASSIGN}
+				{TT::PERCENT_EQ, OT::MODULO_ASSIGN},
+				{TT::DIV_EQ, OT::DIV_ASSIGN}
 			},
-			&Parser::parseBinRight // Parser function used for that group is parseBinRight
+			&Parser::parseBinRight
+			// Parser function used for that group is parseBinRight
 		},
 
 		// Precedence = 2
-		{{{TT::DOUBLE_VERT_SLASH, OT::OR}}, &Parser::parseBinLeft}, 
+		{
+			{
+				{TT::DOUBLE_VERT_SLASH, OT::OR},
+				{TT::OR, OT::OR}
+			},
+			&Parser::parseBinLeft
+		},
 
 		// Precedence = 3
-		{{{TT::DOUBLE_AMP, OT::AND}}, &Parser::parseBinLeft}, 
+		{
+			{
+				{TT::DOUBLE_AMP, OT::AND},
+				{TT::AND, OT::AND}
+			},
+			&Parser::parseBinLeft
+		},
 
 		// Precedence = 4
-		{ 
+		{
 			{
 				{TT::DOUBLE_EQ, OT::EQUAL},
 				{TT::NOT_EQ, OT::NOT_EQUAL}
@@ -111,7 +131,7 @@ private:
 		},
 
 		// Precedence = 5
-		{ 
+		{
 			{
 				{TT::LESS, OT::LESS},
 				{TT::LESS_EQ, OT::LESS_EQ},
@@ -122,7 +142,7 @@ private:
 		},
 
 		// Precedence = 6
-		{ 
+		{
 			{
 				{TT::PLUS, OT::ADDITION},
 				{TT::MINUS, OT::SUBTRACTION}
@@ -134,7 +154,9 @@ private:
 			{
 				{TT::STAR, OT::MULTIPLICATION},
 				{TT::FORW_SLASH, OT::DIVISION},
-				{TT::PERCENT, OT::MODULO}
+				{TT::PERCENT, OT::MODULO},
+				{TT::MOD, OT::MODULO},
+				{TT::DIV, OT::DIV}
 			},
 			&Parser::parseBinLeft
 		},
@@ -144,6 +166,7 @@ private:
 				{TT::PLUS, OT::UNARY_PLUS},
 				{TT::MINUS, OT::UNARY_NEGATION},
 				{TT::EXMARK, OT::NOT},
+				{TT::NOT, OT::NOT},
 				{TT::DOUBLE_PLUS, OT::PRE_INCR},
 				{TT::DOUBLE_MINUS, OT::PRE_DECR}
 			},
@@ -169,21 +192,25 @@ private:
 		{{}, &Parser::parsePrimary}
 	};
 
-	CodeBlock* parseBlock();
-	Statement* parseWhile();
-	Statement* parseIf();
-	Statement* parseFor();
-	Statement* parseExpr();
-	Statement* parseReturn();
-	Statement* parseFunctionDef();
-	ASTNode* parseUnary(precedenceGroup*);
-	ASTNode* parseBinLeft(precedenceGroup*);
-	ASTNode* parseBinRight(precedenceGroup*);
-	ASTNode* parseUnaryPostfix(precedenceGroup*);
-	ASTNode* parsePrimary(precedenceGroup*);
-	ASTNode* parseParenthAndDot(precedenceGroup*);
+	CodeBlock* parseBlock(); // Parses a block
+	Statement* parseWhile(); // Parses a while statement
+	Statement* parseIf(); // Parses an if statement
+	Statement* parseFor(); // Parses a for statement
+	Statement* parseExpr(); // Parses an expression
+	Statement* parseReturn(); // Parses a return statement
+	Statement* parseFunctionDef(); // Parses a function definition
+	ASTNode* parseUnary(precedenceGroup*); // Parses unary prefix operators
+	ASTNode* parseBinLeft(precedenceGroup*); // For binary left associative ops.
+	ASTNode* parseBinRight(precedenceGroup*); // For binary right associative ops.
+	ASTNode* parseUnaryPostfix(precedenceGroup*); // Parses unary postfix ops.
+	ASTNode* parsePrimary(precedenceGroup*); // Parses IDs, literals, list inits.
+	ASTNode* parseParenthAndDot(precedenceGroup*); /* Parses parenth and dot
+				operators. These are left associative and have same precedence */
 	int blockLevel = -1;
-	// Each block increases this by one. So if the main block (which contains everything) is level 0, then blockLevel is initially -1.
-	bool lessTabs(int&);
-	void checkNewLine();
+	// Each block increases this by one. So if the main block (which contains everything)
+	// is level 0, then blockLevel is initially -1.
+	bool lessTabs(int&); /* Check the subsequuent tabs at any point, to determine
+							if we've exited a block, or identation errors */
+	void checkNewLine(); /* Proceed to newline, or throw errors if newline is
+							expected but there are more tokens */
 };
