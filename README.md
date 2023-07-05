@@ -95,8 +95,6 @@ The interpreter utilizes a recursive descent parser to build the abstract syntax
 This is a guide of how to build the interpreter on your machine and run an example program.
 
 ### Prerequisites
-
-This is an example of how to list things you need to use the software and how to install them.
 * g++ 11.3.0
 * GNU make 4.3
 * git 2.34.1
