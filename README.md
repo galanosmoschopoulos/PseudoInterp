@@ -212,7 +212,7 @@ Project Link: [https://github.com/rafmosch/PseudoInterp](https://github.com/rafm
 [issues-shield]: https://img.shields.io/github/issues/rafmosch/PseudoInterp.svg?style=for-the-badge
 [issues-url]: https://github.com/rafmosch/PseudoInterp/issues
 [license-shield]: https://img.shields.io/github/license/rafmosch/PseudoInterp.svg?style=for-the-badge
-[license-url]: https://github.com/rafmosch/PseudoInterp/blob/master/LICENSE
+[license-url]: https://github.com/rafmosch/PseudoInterp/blob/master/LICENSE.md
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/in/rafael-moschopoulos-50161b281/
 [product-screenshot]: images/screenshot.png
