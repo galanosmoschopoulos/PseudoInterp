@@ -11,7 +11,8 @@
 #include "scope.h"
 #include "inputcleaner.h"
 #include "errors.h"
-#include "color.h"
+/* This color lib only works with windows
+ * #include "color.h" */
 
 #define VER "1.0" // Current version of the software
 
@@ -33,16 +34,26 @@ void interpret(const std::string& inputStr)
 		const auto duration = std::chrono::duration_cast<
 			std::chrono::milliseconds>(stop - start);
 		delete mainBlock;
-		std::cout << '\n' << dye::green_on_black(
+
+		/* Only in Windows
+		 * std::cout << '\n' << dye::green_on_black(
 			"Successful execution.\nTime elapsed: " + std::to_string(
-				duration.count()) + " ms.") << '\n';
+				duration.count()) + " ms.") << '\n';*/
+
+		std::cout << '\n' <<  "Successful execution.\nTime elapsed: " +
+			std::to_string(duration.count()) + " ms." << '\n';
+
 	}
 	catch (CustomError& ce)
 	{
 		// Print both the custom error message, and the line in the source code where
 		// the error occurs.
-		std::cerr << '\n' << dye::red_on_black(
-			ce.what() + "\n" + cleaner.getErrorLine(ce.getPos()));
+		/* Colors only in Windows
+		 * std::cerr << '\n' << dye::red_on_black(
+			ce.what() + "\n" + cleaner.getErrorLine(ce.getPos()));*/
+
+		std::cerr << '\n' << ce.what() + "\n" + cleaner.getErrorLine(ce.getPos());
+
 		// Cleaner is responsible for accepting a position as a integer, and finding the
 		// exact line and character corresponding to that position.
 	}
@@ -100,9 +111,9 @@ int main(int argc, char** argv)
 				"Illegal command line arguments.");
 		if (flags.help)
 			std::cout << // Print help message
-				"IB pseudocode interpreter made by Galanos Moschopoulos\n "
+				"IB pseudocode interpreter made by Rafael Moschopoulos\n "
 				"Usage\t-? : Prints this message\n\t-I : Sets "
-				"input code file\n\t - V : Prints version number\n";
+				"input code file\n\t-V : Prints version number\n";
 		if (flags.ver) std::cout << "Version " << VER << '\n'; // Show version
 
 		if (flags.inputFileSet)
