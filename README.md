@@ -79,7 +79,7 @@
 
 This project is an interpreter of the IB pseudocode language built from scratch in C++. IB pseudocode is used in the IB CS course to write simple algorithms and programs. It contains all basic procedural structures (while, for, if/else), functions, primitive types (bool, float, int) arrays and strings, and ADTs (stack, queue, linked list/collections). It is a pseudo-OOP language, as ADTs are treated as objects but the user cannot define their own objects.
 
-The interpreter utilizes a recursive descent parser to build the abstract syntax tree, which implements runtime polymorphism to represent all structures/expressions as nodes. Types are runtime-resolved and objects utilize sum-type std::variant to store the appropriate type. Some built in functions such as constructors for ADTs and input/output are hardcoded.
+The interpreter utilizes a recursive descent parser to build the abstract syntax tree, which implements runtime polymorphism to represent all structures/expressions as nodes. Types are runtime-resolved and objects utilize sum-type `std::variant` to store the appropriate type. Some built in functions such as constructors for ADTs and input/output are hardcoded.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
