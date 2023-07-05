@@ -77,9 +77,9 @@
 
 <!-- [![Product Name Screen Shot][product-screenshot]](https://example.com) -->
 
-Twitter is a platform where anyone can publicly and succinctly state their personal, honest opinion regarding a trend, idea, or concept. Hence, the retrieval of numerous tweets regarding a specific concept can be used to sentimentally analyze them and provide a positivity/negativity score. Taking into consideration tweets posted over a certain period of time, the variation of public attitude with regards to this concept can be visualized.
+This project is an interpreter of the IB pseudocode language built from scratch in C++. IB pseudocode is used in the IB CS course to write simple algorithms and programs. It contains all basic procedural structures (while, for, if/else), functions, primitive types (bool, float, int) arrays and strings, and ADTs (stack, queue, linked list/collections). It is a pseudo-OOP language, as ADTs are treated as objects but the user cannot define their own objects.
 
-Furthermore, other relevant features include the ability to see where in the world the given idea is being stated the most in tweets, who are the most popular Tweeter users talking about this idea right now, and what other keywords/ideas are often correlated to the given one.
+The interpreter utilizes a recursive descent parser to build the abstract syntax tree, which implements runtime polymorphism to represent all structures/expressions as nodes. Types are runtime-resolved and objects utilize sum-type std::variant to store the appropriate type. Some built in functions such as constructors for ADTs and input/output are hardcoded.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -100,6 +100,7 @@ This is an example of how to list things you need to use the software and how to
 * g++ 11.3.0
 * GNU make 4.3
 * git 2.34.1
+
 On Ubuntu:
   ```
   $ sudo apt install git build-essential
@@ -137,7 +138,8 @@ More information on syntax can be found by referring to the official IB pseudoco
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-* 
+* Test pseudocode programs, or practice for IB tests/exams.
+* Quickly implement various algorithms, as all basic ADTs are available.
 
 <!--_For more examples, please refer to the [Documentation](https://example.com)_-->
 
