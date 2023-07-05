@@ -22,7 +22,7 @@
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
+<!-- [![MIT License][license-shield]][license-url] -->
 [![LinkedIn][linkedin-shield]][linkedin-url]
 
 
@@ -123,9 +123,9 @@ On Ubuntu:
 ### Running a program
 
 The following flags are available:
-* -?: Prints informational message regarding usage.
-* -v: Prints program version.
-* -i: Sets input file.
+* `-?`: Prints informational message regarding usage.
+* `-v`: Prints program version.
+* `-i`: Sets input file.
 
 To execute the example program, run `$ ./bin/pseudointerp -i ./examples/ex1`.
 This program reverses the contents of a stack.
@@ -173,7 +173,7 @@ Don't forget to give the project a star! Thanks again!
 <!-- LICENSE -->
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+Distributed under the MIT License. See `LICENSE` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -193,9 +193,9 @@ Project Link: [https://github.com/rafmosch/PseudoInterp](https://github.com/rafm
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-* []()
-* []()
-* []()
+* [Aaron Fu Lei. “Color Console”](https://github.com/aafulei/color-console)
+* [Grimm, Rainer. “Visiting a Std::Variant with the Overload Pattern.” Modernes C++, 27 Sept. 2021](https://www.modernescpp.com/index.php/visiting-a-std-variant-with-the-overload-pattern)
+* [Porter, Harry. "Recursive Descent Parsing," YouTube](https://www.youtube.com/watch?v=nDubPD0-7XY)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
