@@ -22,7 +22,7 @@
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
-<!-- [![MIT License][license-shield]][license-url] -->
+[![MIT License][license-shield]][license-url] 
 [![LinkedIn][linkedin-shield]][linkedin-url]
 
 
@@ -195,7 +195,7 @@ Project Link: [https://github.com/rafmosch/PseudoInterp](https://github.com/rafm
 
 * [Aaron Fu Lei. “Color Console”](https://github.com/aafulei/color-console)
 * [Grimm, Rainer. “Visiting a Std::Variant with the Overload Pattern.” Modernes C++, 27 Sept. 2021](https://www.modernescpp.com/index.php/visiting-a-std-variant-with-the-overload-pattern)
-* [Porter, Harry. "Recursive Descent Parsing," YouTube](https://www.youtube.com/watch?v=nDubPD0-7XY)
+* [Porter, Harry. "Recursive Descent Parsing," YouTube](https://www.youtube.com/watch?v=SToUyjAsaFk)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
