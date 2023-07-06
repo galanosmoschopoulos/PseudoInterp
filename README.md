@@ -139,6 +139,72 @@ More information on syntax can be found by referring to the official IB pseudoco
 * Test pseudocode programs, or practice for IB tests/exams.
 * Quickly implement various algorithms, as all basic ADTs are available.
 
+### Accepted syntax
+* Literals
+  ```
+  pi = 3.14
+  age = 10
+  sad = false
+  str = "hey\teveryone\tim\ta\t\string\n"
+  chr = '\x24'
+  ```
+* Control flow
+  ```
+  a = 3, b = 5
+  if a > b or a == 0 then
+    output(a+b)
+  else if a == b then
+    output(a)
+  else
+    output("Foo")
+  ```
+  ```
+  loop for i from 0 to 10
+    output(i*i)
+  n = 0
+  loop while n < 10
+    output(n++)
+  ```
+* Functions
+  ```
+  method fibo(n)
+    if n == 0 or n == 1 then
+      return n
+    else
+      return fibo(n-1) + fibo(n-2)
+  ```
+* I/O
+  ```
+  age = 0
+  input(age)
+  output("i am " + age + "years old")
+  ```
+* Arrays and strings
+  ```
+  A = Array(10)
+  A = [1, 34, 23, 56, 3]
+  str = "hello world"
+  output(str[3] + " " + A[2])
+  twoD = [[1, 2], [3, 4]]
+  output(twoD[0, 1] + twoD[1][0])
+  ```
+* ADTs
+  ```
+  S = Stack(), Q = Queue(), C = Collection()
+  S.push(2), Q.enqueue(3)
+
+  if not S.isEmpty() and not Q.isEmpty() then
+    output(S.pop() + Q.dequeue())
+
+  loop for i from 0 to 4
+    C.addItem(input())
+  loop while C.hasNext()
+    output(C.getNext())
+  C.resetNext()
+  ```
+  
+
+  
 <!--_For more examples, please refer to the [Documentation](https://example.com)_-->
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
