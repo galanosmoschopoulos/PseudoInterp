@@ -35,11 +35,11 @@
   <p align="center">
     An interpreter of IB pseudocode built from scratch in C++!
     <br />
-    <a href="https://github.com/rafmosch/PseudoInterp">View Demo</a>
+    <a href="https://github.com/rafaelmoschopoulos/PseudoInterp">View Demo</a>
     ·
-    <a href="https://github.com/rafmosch/PseudoInterp/issues">Report Bug</a>
+    <a href="https://github.com/rafaelmoschopoulos/PseudoInterp/issues">Report Bug</a>
     ·
-    <a href="https://github.com/rafmosch/PseudoInterp/issues">Request Feature</a>
+    <a href="https://github.com/rafaelmoschopoulos/PseudoInterp/issues">Request Feature</a>
   </p>
 </div>
 
@@ -108,7 +108,7 @@ On Ubuntu:
 
 1. Clone the repo on your machine.
   ```
-  $ git clone https://github.com/rafmosch/PseudoInterp
+  $ git clone https://github.com/rafaelmoschopoulos/PseudoInterp
   $ cd PseudoInterp/
   ```
 2. Build
@@ -210,7 +210,7 @@ More information on syntax can be found by referring to the official IB pseudoco
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-See the [open issues](https://github.com/rafmosch/PseudoInterp/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/rafaelmoschopoulos/PseudoInterp/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -248,7 +248,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 Your Name - [@raf_mos](https://twitter.com/raf_mos) - raf.mos@princeton.edu
 
-Project Link: [https://github.com/rafmosch/PseudoInterp](https://github.com/rafmosch/PseudoInterp)
+Project Link: [https://github.com/rafaelmoschopoulos/PseudoInterp](https://github.com/rafaelmoschopoulos/PseudoInterp)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -267,16 +267,16 @@ Project Link: [https://github.com/rafmosch/PseudoInterp](https://github.com/rafm
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/rafmosch/PseudoInterp.svg?style=for-the-badge
-[contributors-url]: https://github.com/rafmosch/PseudoInterp/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/rafmosch/PseudoInterp.svg?style=for-the-badge
-[forks-url]: https://github.com/rafmosch/PseudoInterp/network/members
-[stars-shield]: https://img.shields.io/github/stars/rafmosch/PseudoInterp.svg?style=for-the-badge
-[stars-url]: https://github.com/rafmosch/PseudoInterp/stargazers
-[issues-shield]: https://img.shields.io/github/issues/rafmosch/PseudoInterp.svg?style=for-the-badge
-[issues-url]: https://github.com/rafmosch/PseudoInterp/issues
-[license-shield]: https://img.shields.io/github/license/rafmosch/PseudoInterp.svg?style=for-the-badge
-[license-url]: https://github.com/rafmosch/PseudoInterp/blob/master/LICENSE.md
+[contributors-shield]: https://img.shields.io/github/contributors/rafaelmoschopoulos/PseudoInterp.svg?style=for-the-badge
+[contributors-url]: https://github.com/rafaelmoschopoulos/PseudoInterp/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/rafaelmoschopoulos/PseudoInterp.svg?style=for-the-badge
+[forks-url]: https://github.com/rafaelmoschopoulos/PseudoInterp/network/members
+[stars-shield]: https://img.shields.io/github/stars/rafaelmoschopoulos/PseudoInterp.svg?style=for-the-badge
+[stars-url]: https://github.com/rafaelmoschopoulos/PseudoInterp/stargazers
+[issues-shield]: https://img.shields.io/github/issues/rafaelmoschopoulos/PseudoInterp.svg?style=for-the-badge
+[issues-url]: https://github.com/rafaelmoschopoulos/PseudoInterp/issues
+[license-shield]: https://img.shields.io/github/license/rafaelmoschopoulos/PseudoInterp.svg?style=for-the-badge
+[license-url]: https://github.com/rafaelmoschopoulos/PseudoInterp/blob/master/LICENSE.md
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/in/rafael-moschopoulos-50161b281/
 [product-screenshot]: images/screenshot.png
