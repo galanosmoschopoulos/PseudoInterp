@@ -20,7 +20,7 @@
 void interpret(const std::string& inputStr)
 {
 	InputCleaner cleaner(inputStr);
-    CodeBlock* mainBlock = nullptr;
+        CodeBlock* mainBlock = nullptr;
 	try
 	{
 		Parser parser;
@@ -58,8 +58,8 @@ void interpret(const std::string& inputStr)
 		// exact line and character corresponding to that position.
 	}
     
-    if (mainBlock)
-        delete mainBlock;
+    	if (mainBlock)
+                delete mainBlock;
 }
 
 int main(int argc, char** argv)
