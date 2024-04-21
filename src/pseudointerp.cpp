@@ -20,10 +20,11 @@
 void interpret(const std::string& inputStr)
 {
 	InputCleaner cleaner(inputStr);
+    CodeBlock* mainBlock = nullptr;
 	try
 	{
 		Parser parser;
-		auto mainBlock = parser.getAST(cleaner.clean());
+		mainBlock = parser.getAST(cleaner.clean());
 		// Get the AST of the whole code
 		Scope globalScope;
 		globalScope.enableExternalFunctions();
@@ -33,7 +34,6 @@ void interpret(const std::string& inputStr)
 		const auto stop = std::chrono::high_resolution_clock::now();
 		const auto duration = std::chrono::duration_cast<
 			std::chrono::milliseconds>(stop - start);
-		delete mainBlock;
 
 		/* Only in Windows
 		 * std::cout << '\n' << dye::green_on_black(
@@ -57,6 +57,9 @@ void interpret(const std::string& inputStr)
 		// Cleaner is responsible for accepting a position as a integer, and finding the
 		// exact line and character corresponding to that position.
 	}
+    
+    if (mainBlock)
+        delete mainBlock;
 }
 
 int main(int argc, char** argv)

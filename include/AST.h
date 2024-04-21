@@ -13,7 +13,6 @@ class Object;
 class Scope;
 enum class OperatorType;
 
-static void cleanTmps(std::initializer_list<Object*>);
 Object& checkLval(const Object& obj);
 
 
